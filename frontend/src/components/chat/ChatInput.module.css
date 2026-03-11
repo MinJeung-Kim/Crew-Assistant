@@ -1,0 +1,76 @@
+.container {
+  padding: 12px 20px 16px;
+  border-top: 1px solid #f3f4f6;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.textarea {
+  flex: 1;
+  border: none;
+  resize: none;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+  color: #111827;
+  line-height: 1.5;
+  background: transparent;
+  max-height: 120px;
+  overflow-y: auto;
+  outline: none;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.newSessionButton {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sendButton {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.sendButtonEnabled {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+.sendButtonDisabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: default;
+}
