@@ -1,6 +1,17 @@
+import { Fragment, type ReactNode } from "react";
+import { NavLink } from "react-router-dom";
 import {
-  IconChat, IconChart, IconLayers, IconStar, IconNode, IconSettings 
+  IconChat,
+  IconChart,
+  IconLayers,
+  IconStar,
+  IconNode,
+  IconSettings,
 } from "../icons";
+import {
+  NAV_SECTIONS,
+  type NavIconKey,
+} from "../../constants/navigation";
 import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
@@ -8,18 +19,34 @@ interface SidebarProps {
 }
 
 interface NavItemProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  active?: boolean;
+  to: string;
 }
 
-function NavItem({ icon, label, active }: NavItemProps) {
+const ICON_BY_KEY: Record<NavIconKey, ReactNode> = {
+  chat: <IconChat />,
+  overview: <IconChart />,
+  agents: <IconStar />,
+  tools: <IconStar />,
+  env: <IconNode />,
+  settings: <IconSettings />,
+  billing: <IconLayers />,
+  usage: <IconChart />,
+};
+
+function NavItem({ icon, label, to }: NavItemProps) {
   return (
-    <button
-      className={`${styles.navItem} ${active ? styles.navItemActive : ''}`}
+    <NavLink
+      to={to}
+      end={to === "/chat"}
+      className={({ isActive }) =>
+        `${styles.navItem} ${isActive ? styles.navItemActive : ""}`
+      }
     >
-      {icon}{label}
-    </button>
+      {icon}
+      <span>{label}</span>
+    </NavLink>
   );
 }
 
@@ -34,25 +61,27 @@ function SectionLabel({ label }: { label: string }) {
 export function Sidebar({ isOpen = true }: SidebarProps) {
   return (
     <div className={`${styles.sidebar} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
-      <div className={styles.logo}>
+      <NavLink to="/chat" className={styles.logo}>
         <div className={styles.logoIcon}>🦞</div>
         <div>
           <div className={styles.logoTitle}>OPENCLAW</div>
           <div className={styles.logoSubtitle}>GATEWAY DASHBOARD</div>
         </div>
-      </div>
-      <div className={styles.navContainer}> 
-        <SectionLabel label="Build" />
-        <NavItem icon={<IconChat />} label="Chat" active />
-        <NavItem icon={<IconChart />} label="Overview" /> 
-        <SectionLabel label="Agent" />
-        <NavItem icon={<IconStar />} label="Agents" />
-        <NavItem icon={<IconStar />} label="Tools & Integrations" />
-        <NavItem icon={<IconNode />} label="Environment Variables" />
-        <SectionLabel label="Manage" />
-        <NavItem icon={<IconSettings />} label="Settings" /> 
-        <NavItem icon={<IconLayers />} label="Billing" />
-        <NavItem icon={<IconChart />} label="Usage" /> 
+      </NavLink>
+      <div className={styles.navContainer}>
+        {NAV_SECTIONS.map((section) => (
+          <Fragment key={section.label}>
+            <SectionLabel label={section.label} />
+            {section.items.map((item) => (
+              <NavItem
+                key={item.path}
+                icon={ICON_BY_KEY[item.icon]}
+                label={item.label}
+                to={item.path}
+              />
+            ))}
+          </Fragment>
+        ))}
       </div>
     </div>
   );

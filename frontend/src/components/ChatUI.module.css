@@ -53,3 +53,92 @@
   flex-direction: column;
   min-width: 0;
 }
+
+.placeholderPage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.placeholderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.placeholderHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.placeholderMenuButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.placeholderMenuButton:hover {
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.04);
+  transform: scale(1.05);
+}
+
+.placeholderMenuButton:active {
+  transform: scale(0.95);
+}
+
+.placeholderTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.placeholderSubtitle {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: 'DM Mono', monospace;
+}
+
+.placeholderBody {
+  flex: 1;
+  padding: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  overflow-y: auto;
+}
+
+.placeholderCard {
+  max-width: 720px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.placeholderCard h2 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 20px;
+}
+
+.placeholderCard p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .placeholderBody {
+    padding: 16px;
+  }
+}
