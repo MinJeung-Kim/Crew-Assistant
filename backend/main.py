@@ -110,6 +110,28 @@ class KnowledgeStatusResponse(BaseModel):
     updated_at: str | None = None
 
 
+class TranslateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=32_000)
+    target_language: str = Field(default="ko", min_length=2, max_length=40)
+    preserve_markdown: bool = True
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        if "\x00" in value:
+            raise ValueError("text contains invalid null characters")
+        normalized = value.replace("\r\n", "\n").strip()
+        if not normalized:
+            raise ValueError("text must not be empty")
+        return normalized
+
+
+class TranslateResponse(BaseModel):
+    translated_text: str
+    target_language: str
+    source: str = "llm"
+
+
 def serialize_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
     return [{"role": m.role, "content": m.content} for m in messages]
 
@@ -151,6 +173,43 @@ async def run_default_llm_chat(
         messages=inject_company_context(messages, company_context),
     )
     return completion.choices[0].message.content or ""
+
+
+async def run_translation(
+    client: AsyncOpenAI,
+    settings: Settings,
+    req: TranslateRequest,
+) -> str:
+    requested_language = req.target_language.strip() or "ko"
+    normalized_language = requested_language.lower()
+    target_language = (
+        "Korean"
+        if normalized_language in {"ko", "ko-kr", "kr", "korean", "한국어"}
+        else requested_language
+    )
+
+    preserve_style = (
+        "Preserve markdown structure, tables, headings, lists, links, and code blocks exactly."
+        if req.preserve_markdown
+        else "You may freely format the translation for readability."
+    )
+
+    completion = await client.chat.completions.create(
+        model=settings.llm_model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a professional translator. "
+                    f"Translate the user text into {target_language}. "
+                    "Return only the translated content without commentary. "
+                    f"{preserve_style}"
+                ),
+            },
+            {"role": "user", "content": req.text},
+        ],
+    )
+    return (completion.choices[0].message.content or "").strip()
 
 
 async def run_crewai_report(
@@ -204,6 +263,27 @@ async def load_company_context(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/translate", response_model=TranslateResponse)
+async def translate(
+    req: TranslateRequest,
+    settings: Settings = Depends(get_settings),
+) -> TranslateResponse:
+    client: AsyncOpenAI = app.state.llm_client
+    try:
+        translated = await run_translation(client, settings, req)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Translation failed: {exc}") from exc
+
+    if not translated:
+        raise HTTPException(status_code=502, detail="Translation failed: empty response")
+
+    return TranslateResponse(
+        translated_text=translated,
+        target_language=req.target_language,
+        source="llm",
+    )
 
 
 @app.get("/knowledge/status", response_model=KnowledgeStatusResponse)

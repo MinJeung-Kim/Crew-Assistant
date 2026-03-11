@@ -1,8 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { Message } from "../../types/chat";
+import { API_BASE } from "../../constants";
 import { formatTime } from "../../utils";
 import styles from "./MessageBubble.module.css";
 
@@ -117,7 +119,88 @@ const markdownComponents: Components = {
 
 export function MessageBubble({ message }: Props) {
   const isUser = message.role === "user";
-  const markdownContent = normalizeMarkdownContent(message.content);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
+
+  const canTranslate = useMemo(
+    () => !isUser && /[A-Za-z]/.test(message.content),
+    [isUser, message.content]
+  );
+
+  const displayContent = showTranslated && translatedContent
+    ? translatedContent
+    : message.content;
+  const markdownContent = normalizeMarkdownContent(displayContent);
+
+  useEffect(() => {
+    setTranslatedContent(null);
+    setShowTranslated(false);
+    setIsTranslating(false);
+    setTranslationError(null);
+  }, [message.id, message.content]);
+
+  const handleTranslate = async () => {
+    if (!canTranslate || isTranslating) return;
+
+    if (translatedContent) {
+      setShowTranslated((prev) => !prev);
+      return;
+    }
+
+    setIsTranslating(true);
+    setTranslationError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: message.content,
+          target_language: "ko",
+          preserve_markdown: true,
+        }),
+      });
+
+      const payload = (await res.json().catch(() => ({}))) as {
+        translated_text?: unknown;
+        detail?: unknown;
+      };
+
+      if (!res.ok) {
+        const detail =
+          typeof payload.detail === "string"
+            ? payload.detail
+            : `HTTP ${res.status}`;
+        throw new Error(detail);
+      }
+
+      const translatedText =
+        typeof payload.translated_text === "string"
+          ? payload.translated_text.trim()
+          : "";
+      if (!translatedText) {
+        throw new Error("번역 결과가 비어 있습니다.");
+      }
+
+      setTranslatedContent(translatedText);
+      setShowTranslated(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setTranslationError(msg);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const translateButtonLabel = isTranslating
+    ? "번역 중..."
+    : showTranslated
+      ? "원문 보기"
+      : translatedContent
+        ? "한국어 보기"
+        : "한국어 번역";
 
   return (
     <div
@@ -146,6 +229,22 @@ export function MessageBubble({ message }: Props) {
       </div>
 
       <MessageMeta message={message} isUser={isUser} />
+
+      {!isUser && canTranslate && (
+        <div className={styles.translateActions}>
+          <button
+            type="button"
+            onClick={handleTranslate}
+            className={styles.translateButton}
+            disabled={isTranslating}
+          >
+            {translateButtonLabel}
+          </button>
+          {translationError && (
+            <span className={styles.translationError}>{translationError}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
