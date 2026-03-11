@@ -89,6 +89,17 @@
   background: #ffeaea;
 }
 
+.uploadButton {
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  background: #f3f8ff;
+}
+
+.uploadButton:hover {
+  border-color: #93c5fd;
+  background: #eaf3ff;
+}
+
 .actionButton:disabled,
 .downloadButton:disabled {
   cursor: default;
@@ -96,6 +107,10 @@
   background: #f9fafb;
   color: #9ca3af;
   transform: none;
+}
+
+.hiddenInput {
+  display: none;
 }
 
 .iconButton {

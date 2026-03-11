@@ -174,6 +174,25 @@ export function useChat() {
     abortControllerRef.current?.abort();
   }, []);
 
+  const appendAssistantMessage = useCallback(
+    (content: string, source = "system") => {
+      const normalized = content.trim();
+      if (!normalized) return;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: "assistant",
+          content: normalized,
+          timestamp: new Date(),
+          source,
+        },
+      ]);
+    },
+    []
+  );
+
   const resetSession = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
@@ -192,6 +211,7 @@ export function useChat() {
     error,
     sendMessage,
     stopStreaming,
+    appendAssistantMessage,
     resetSession,
     clearError,
   };

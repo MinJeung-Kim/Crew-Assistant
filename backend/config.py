@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     crewai_model: str = ""
     crewai_web_search_results: int = Field(default=6, ge=1, le=12)
 
+    # RAG
+    rag_enabled: bool = True
+    rag_storage_path: str = "./data/knowledge"
+    rag_embedding_model: str = "text-embedding-3-small"
+    rag_top_k: int = Field(default=4, ge=1, le=12)
+    rag_max_chunk_chars: int = Field(default=900, ge=300, le=3000)
+    rag_chunk_overlap: int = Field(default=120, ge=0, le=500)
+    rag_max_upload_mb: int = Field(default=20, ge=1, le=200)
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]

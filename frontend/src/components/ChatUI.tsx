@@ -10,6 +10,7 @@ import { ChatInput } from "./chat/ChatInput";
 import { IconMenu } from "./icons";
 import { CrewFlowPage } from "./flow/CrewFlowPage";
 import { generateId } from "../utils";
+import { API_BASE } from "../constants";
 import styles from "./ChatUI.module.css";
 
 interface ChatWorkspaceProps {
@@ -21,6 +22,8 @@ interface ChatWorkspaceProps {
   onNewSession: () => void;
   onDownload: () => void;
   canDownload: boolean;
+  onUploadKnowledge: (file: File) => void;
+  isUploadingKnowledge: boolean;
   onRefresh: () => void;
   onStop: () => void;
   onToggleFullscreen: () => void;
@@ -47,6 +50,8 @@ function ChatWorkspace({
   onNewSession,
   onDownload,
   canDownload,
+  onUploadKnowledge,
+  isUploadingKnowledge,
   onRefresh,
   onStop,
   onToggleFullscreen,
@@ -65,6 +70,8 @@ function ChatWorkspace({
         onNewSession={onNewSession}
         onDownload={onDownload}
         canDownload={canDownload}
+        onUploadKnowledge={onUploadKnowledge}
+        isUploadingKnowledge={isUploadingKnowledge}
         onRefresh={onRefresh}
         onStop={onStop}
         onToggleFullscreen={onToggleFullscreen}
@@ -123,6 +130,7 @@ export default function ChatUI() {
   const [sessionName, setSessionName] = useState("Main Session");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isUploadingKnowledge, setIsUploadingKnowledge] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -132,6 +140,7 @@ export default function ChatUI() {
     error,
     sendMessage,
     stopStreaming,
+    appendAssistantMessage,
     resetSession,
     clearError,
   } = useChat();
@@ -255,6 +264,60 @@ export default function ChatUI() {
     URL.revokeObjectURL(url);
   };
 
+  const handleUploadKnowledge = async (file: File) => {
+    if (isUploadingKnowledge) return;
+
+    setIsUploadingKnowledge(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${API_BASE}/knowledge/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await res.json().catch(() => ({}))) as {
+        detail?: unknown;
+        chunk_count?: unknown;
+        total_chunks?: unknown;
+      };
+
+      if (!res.ok) {
+        const detail =
+          typeof payload.detail === "string"
+            ? payload.detail
+            : `HTTP ${res.status}`;
+        throw new Error(detail);
+      }
+
+      const chunkCount =
+        typeof payload.chunk_count === "number" ? payload.chunk_count : 0;
+      const totalChunks =
+        typeof payload.total_chunks === "number"
+          ? payload.total_chunks
+          : chunkCount;
+
+      appendAssistantMessage(
+        [
+          `회사 자료 업로드 완료: ${file.name}`,
+          `- 신규 청크: ${chunkCount}`,
+          `- 누적 청크: ${totalChunks}`,
+          "이제 답변 시 회사 문서를 우선 참고합니다.",
+        ].join("\n"),
+        "rag-index"
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      appendAssistantMessage(
+        `회사 자료 업로드 실패: ${msg}`,
+        "rag-index"
+      );
+    } finally {
+      setIsUploadingKnowledge(false);
+    }
+  };
+
   const canDownload = messages.length > 0;
   const canRefresh = messages.some((msg) => msg.role === "user") && !isLoading;
   const canStop = isLoading;
@@ -285,6 +348,8 @@ export default function ChatUI() {
                 onNewSession={handleNewSession}
                 onDownload={handleDownload}
                 canDownload={canDownload}
+                onUploadKnowledge={handleUploadKnowledge}
+                isUploadingKnowledge={isUploadingKnowledge}
                 onRefresh={handleRefresh}
                 onStop={handleStop}
                 onToggleFullscreen={handleToggleFullscreen}

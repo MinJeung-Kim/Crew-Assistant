@@ -26,3 +26,31 @@ CREWAI_WEB_SEARCH_RESULTS=6
 ```
 
 - `CREWAI_MODEL` is optional. If empty, the backend will use `openai/<LLM_MODEL>`.
+
+## Company RAG Integration
+
+- Upload company documents to build retrieval context:
+
+```bash
+POST /knowledge/upload
+```
+
+- Check ingestion status:
+
+```bash
+GET /knowledge/status
+```
+
+- Once documents are uploaded, `/chat` and `/chat/stream` automatically inject top company knowledge chunks into prompts.
+
+- RAG environment variables:
+
+```env
+RAG_ENABLED=true
+RAG_STORAGE_PATH=./data/knowledge
+RAG_EMBEDDING_MODEL=text-embedding-3-small
+RAG_TOP_K=4
+RAG_MAX_CHUNK_CHARS=900
+RAG_CHUNK_OVERLAP=120
+RAG_MAX_UPLOAD_MB=20
+```

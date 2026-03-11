@@ -1,3 +1,4 @@
+import { useRef, type ChangeEvent } from "react";
 import {
   IconRefresh, IconStop, IconExpand, IconClock, IconMenu,
 } from "../icons";
@@ -16,6 +17,8 @@ interface Props {
   onNewSession: () => void;
   onDownload: () => void;
   canDownload: boolean;
+  onUploadKnowledge: (file: File) => void;
+  isUploadingKnowledge: boolean;
   onRefresh: () => void;
   onStop: () => void;
   onToggleFullscreen: () => void;
@@ -32,6 +35,8 @@ export function Header({
   onNewSession,
   onDownload,
   canDownload,
+  onUploadKnowledge,
+  isUploadingKnowledge,
   onRefresh,
   onStop,
   onToggleFullscreen,
@@ -41,6 +46,19 @@ export function Header({
   canHistory,
   isFullscreen,
 }: Props) {
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    uploadInputRef.current?.click();
+  };
+
+  const handleUploadChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+    onUploadKnowledge(selectedFile);
+    event.target.value = "";
+  };
+
   const handleIconAction = (actionId: (typeof HEADER_ICON_ACTIONS)[number]["id"]) => {
     if (actionId === "refresh") {
       onRefresh();
@@ -112,6 +130,23 @@ export function Header({
         >
           Download
         </button>
+
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          disabled={isUploadingKnowledge}
+          className={`${styles.actionButton} ${styles.uploadButton}`}
+        >
+          {isUploadingKnowledge ? "Uploading..." : "Upload File"}
+        </button>
+
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept=".txt,.md,.markdown,.pdf,.docx"
+          className={styles.hiddenInput}
+          onChange={handleUploadChange}
+        />
 
         {HEADER_ICON_ACTIONS.map((action) => (
           <button
