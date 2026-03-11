@@ -4,6 +4,10 @@ import {
 } from "../icons";
 import styles from "./Sidebar.module.css";
 
+interface SidebarProps {
+  isOpen?: boolean;
+}
+
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
@@ -28,9 +32,9 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ isOpen = true }: SidebarProps) {
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
       <div className={styles.logo}>
         <div className={styles.logoIcon}>🦞</div>
         <div>

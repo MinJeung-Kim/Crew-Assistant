@@ -21,6 +21,18 @@
   color: #9ca3af;
   display: flex;
   padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.menuButton:hover {
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.04);
+  transform: scale(1.05);
+}
+
+.menuButton:active {
+  transform: scale(0.95);
 }
 
 .title {
@@ -50,6 +62,17 @@
   color: #374151;
   background: #fff;
   width: 140px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.sessionInput:hover {
+  border-color: #d1d5db;
+}
+
+.sessionInput:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .iconButton {
@@ -63,6 +86,20 @@
   background: #fff;
   cursor: pointer;
   color: #9ca3af;
+  transition: all 0.2s ease;
+}
+
+.iconButton:hover {
+  border-color: #d1d5db;
+  color: #6b7280;
+  background: #fafafa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.iconButton:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .errorBadge {

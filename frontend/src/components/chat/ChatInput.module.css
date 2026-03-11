@@ -14,6 +14,12 @@
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: #ef4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.12);
 }
 
 .textarea {
@@ -47,6 +53,20 @@
   color: #6b7280;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.newSessionButton:hover {
+  border-color: #d1d5db;
+  background: #fafafa;
+  color: #374151;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.newSessionButton:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .sendButton {
@@ -66,6 +86,17 @@
 .sendButtonEnabled {
   background: #ef4444;
   color: #fff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+.sendButtonEnabled:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.sendButtonEnabled:active {
+  transform: translateY(0);
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
 }
 

@@ -26,7 +26,7 @@ export default function ChatUI() {
 
   return (
     <div className={styles.container}>
-      {sidebarOpen && <Sidebar />}
+      <Sidebar isOpen={sidebarOpen} />
 
       <div className={styles.mainContent}>
         <Header
