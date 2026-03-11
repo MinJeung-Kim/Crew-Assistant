@@ -9,6 +9,7 @@ import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { IconMenu } from "./icons";
 import { CrewFlowPage } from "./flow/CrewFlowPage";
+import { EnvPage } from "./env/EnvPage";
 import { generateId } from "../utils";
 import { API_BASE } from "../constants";
 import styles from "./ChatUI.module.css";
@@ -375,6 +376,8 @@ export default function ChatUI() {
                     crewProgress={crewProgress}
                     onToggleSidebar={toggleSidebar}
                   />
+                ) : page.path === "/env" ? (
+                  <EnvPage onToggleSidebar={toggleSidebar} />
                 ) : (
                   <PlaceholderPage
                     title={page.label}

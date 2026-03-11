@@ -18,6 +18,13 @@ from crew_orchestrator import (
     should_route_to_crewai,
 )
 from knowledge_base import CompanyKnowledgeBase, extract_text_from_upload
+from onboarding_workflow import (
+    IntegrationSecrets,
+    mask_secret,
+    parse_onboarding_profile,
+    run_onboarding_workflow,
+    utc_now_iso,
+)
 
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
@@ -29,8 +36,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         api_key=settings.llm_api_key,
     )
     app.state.knowledge_base = CompanyKnowledgeBase(settings.rag_storage_path)
+    app.state.integration_secrets = IntegrationSecrets(
+        google_api_key=settings.google_api_key.strip(),
+        slack_api_key=settings.slack_api_key.strip(),
+        updated_at=(
+            utc_now_iso()
+            if settings.google_api_key.strip() or settings.slack_api_key.strip()
+            else None
+        ),
+    )
     print(f"✅ LLM client ready  model={settings.llm_model}  url={settings.llm_base_url}")
     print(f"✅ Knowledge base ready path={settings.rag_storage_path}")
+    print("✅ Integration secret store ready")
     yield
     await app.state.llm_client.close()
 
@@ -132,6 +149,29 @@ class TranslateResponse(BaseModel):
     source: str = "llm"
 
 
+class EnvSecretsUpdateRequest(BaseModel):
+    google_api_key: str | None = Field(default=None, max_length=4096)
+    slack_api_key: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("google_api_key", "slack_api_key")
+    @classmethod
+    def normalize_secret(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if any(ord(ch) < 32 for ch in normalized):
+            raise ValueError("secret contains control characters")
+        return normalized
+
+
+class EnvSecretsStatusResponse(BaseModel):
+    has_google_api_key: bool
+    has_slack_api_key: bool
+    google_api_key_masked: str | None = None
+    slack_api_key_masked: str | None = None
+    updated_at: str | None = None
+
+
 def serialize_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
     return [{"role": m.role, "content": m.content} for m in messages]
 
@@ -160,6 +200,18 @@ def latest_user_prompt(messages: list[ChatMessage]) -> str:
         if message.role == "user":
             return message.content
     return messages[-1].content
+
+
+def build_env_secrets_status(secrets: IntegrationSecrets) -> EnvSecretsStatusResponse:
+    google_key = secrets.google_api_key.strip()
+    slack_key = secrets.slack_api_key.strip()
+    return EnvSecretsStatusResponse(
+        has_google_api_key=bool(google_key),
+        has_slack_api_key=bool(slack_key),
+        google_api_key_masked=mask_secret(google_key),
+        slack_api_key_masked=mask_secret(slack_key),
+        updated_at=secrets.updated_at,
+    )
 
 
 async def run_default_llm_chat(
@@ -288,6 +340,31 @@ async def translate(
     )
 
 
+@app.get("/integrations/env", response_model=EnvSecretsStatusResponse)
+async def integrations_env_status() -> EnvSecretsStatusResponse:
+    secrets: IntegrationSecrets = app.state.integration_secrets
+    return build_env_secrets_status(secrets)
+
+
+@app.post("/integrations/env", response_model=EnvSecretsStatusResponse)
+async def integrations_env_update(req: EnvSecretsUpdateRequest) -> EnvSecretsStatusResponse:
+    secrets: IntegrationSecrets = app.state.integration_secrets
+    changed = False
+
+    if req.google_api_key is not None:
+        secrets.google_api_key = req.google_api_key
+        changed = True
+
+    if req.slack_api_key is not None:
+        secrets.slack_api_key = req.slack_api_key
+        changed = True
+
+    if changed:
+        secrets.updated_at = utc_now_iso()
+
+    return build_env_secrets_status(secrets)
+
+
 @app.get("/knowledge/status", response_model=KnowledgeStatusResponse)
 async def knowledge_status(
     settings: Settings = Depends(get_settings),
@@ -370,6 +447,29 @@ async def chat(
     user_prompt = latest_user_prompt(req.messages)
     company_context, knowledge_sources = await load_company_context(user_prompt, settings)
 
+    onboarding_profile = parse_onboarding_profile(user_prompt)
+    if onboarding_profile is not None:
+        try:
+            result = await run_onboarding_workflow(
+                profile=onboarding_profile,
+                settings=settings,
+                client=client,
+                secrets=app.state.integration_secrets,
+            )
+            return ChatResponse(
+                message=result.report,
+                session_id=req.session_id,
+                source="onboarding",
+                knowledge_sources=knowledge_sources or None,
+            )
+        except Exception as exc:
+            return ChatResponse(
+                message=f"온보딩 자동화 실행 실패: {exc}",
+                session_id=req.session_id,
+                source="onboarding",
+                knowledge_sources=knowledge_sources or None,
+            )
+
     if settings.crewai_enabled and should_route_to_crewai(user_prompt):
         try:
             reply, crew_graph = await run_crewai_report(
@@ -412,6 +512,59 @@ async def chat_stream(
     company_context, knowledge_sources = await load_company_context(user_prompt, settings)
 
     async def token_generator() -> AsyncIterator[str]:
+        onboarding_profile = parse_onboarding_profile(user_prompt)
+        if onboarding_profile is not None:
+            try:
+                loop = asyncio.get_running_loop()
+                progress_queue: asyncio.Queue[dict[str, object]] = asyncio.Queue()
+
+                def on_onboarding_progress(event: dict[str, object]) -> None:
+                    loop.call_soon_threadsafe(progress_queue.put_nowait, event)
+
+                workflow_task = asyncio.create_task(
+                    run_onboarding_workflow(
+                        profile=onboarding_profile,
+                        settings=settings,
+                        client=client,
+                        secrets=app.state.integration_secrets,
+                        on_progress=on_onboarding_progress,
+                    )
+                )
+
+                yield f"data: {json.dumps({'source': 'onboarding', 'knowledge_sources': knowledge_sources, 'token': ''}, ensure_ascii=False)}\n\n"
+
+                while not workflow_task.done():
+                    try:
+                        progress_event = await asyncio.wait_for(
+                            progress_queue.get(),
+                            timeout=0.25,
+                        )
+                    except asyncio.TimeoutError:
+                        continue
+
+                    yield f"data: {json.dumps({'source': 'onboarding', 'onboarding_progress': progress_event, 'knowledge_sources': knowledge_sources, 'token': ''}, ensure_ascii=False)}\n\n"
+
+                result = await workflow_task
+
+                while True:
+                    try:
+                        progress_event = progress_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+                    yield f"data: {json.dumps({'source': 'onboarding', 'onboarding_progress': progress_event, 'knowledge_sources': knowledge_sources, 'token': ''}, ensure_ascii=False)}\n\n"
+
+                for idx in range(0, len(result.report), 140):
+                    chunk = result.report[idx : idx + 140]
+                    if chunk:
+                        yield f"data: {json.dumps({'token': chunk}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+            except Exception as exc:
+                error_message = f"온보딩 자동화 실행 실패: {exc}"
+                yield f"data: {json.dumps({'source': 'onboarding', 'token': error_message}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
         if settings.crewai_enabled and should_route_to_crewai(user_prompt):
             try:
                 loop = asyncio.get_running_loop()

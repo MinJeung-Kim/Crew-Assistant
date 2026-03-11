@@ -49,6 +49,42 @@ POST /translate
 }
 ```
 
+## Env Integrations + Onboarding Automation
+
+- Save Google/Slack keys used by onboarding workflow:
+
+```bash
+GET /integrations/env
+POST /integrations/env
+```
+
+- Example save payload:
+
+```json
+{
+	"google_api_key": "AIza... or ya29...",
+	"slack_api_key": "xoxb..."
+}
+```
+
+- Chat trigger format for onboarding automation:
+
+```text
+[이름] [부서] [입사일] [이메일]
+```
+
+- Example:
+
+```text
+[홍길동] [플랫폼개발팀] [2026-03-17] [hong@example.com]
+```
+
+- Triggered actions:
+1. Google Drive onboarding files search
+2. 입사/온보딩 파일 요약 생성
+3. 신규 입사자 이메일 발송 시도 (OAuth 토큰일 때)
+4. Slack 초대 API 호출
+
 - Check ingestion status:
 
 ```bash

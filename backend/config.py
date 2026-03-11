@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = Field(default=120, ge=0, le=500)
     rag_max_upload_mb: int = Field(default=20, ge=1, le=200)
 
+    # Integrations (Env page)
+    google_api_key: str = ""
+    slack_api_key: str = ""
+    slack_team_id: str = ""
+    onboarding_drive_file_limit: int = Field(default=8, ge=1, le=20)
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]
