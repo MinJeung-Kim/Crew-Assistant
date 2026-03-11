@@ -1,6 +1,5 @@
 import {
-  IconChat, IconChart, IconLink, IconRadio, IconLayers,
-  IconCron, IconStar, IconNode, IconSettings, IconBug, IconLog,
+  IconChat, IconChart, IconLayers, IconStar, IconNode, IconSettings 
 } from "../icons";
 import styles from "./Sidebar.module.css";
 
@@ -42,24 +41,18 @@ export function Sidebar({ isOpen = true }: SidebarProps) {
           <div className={styles.logoSubtitle}>GATEWAY DASHBOARD</div>
         </div>
       </div>
-      <div className={styles.navContainer}>
-        <SectionLabel label="Chat" />
+      <div className={styles.navContainer}> 
+        <SectionLabel label="Build" />
         <NavItem icon={<IconChat />} label="Chat" active />
-        <SectionLabel label="Control" />
-        <NavItem icon={<IconChart />} label="Overview" />
-        <NavItem icon={<IconLink />} label="Channels" />
-        <NavItem icon={<IconRadio />} label="Instances" />
-        <NavItem icon={<IconLayers />} label="Sessions" />
-        <NavItem icon={<IconChart />} label="Usage" />
-        <NavItem icon={<IconCron />} label="Cron Jobs" />
+        <NavItem icon={<IconChart />} label="Overview" /> 
         <SectionLabel label="Agent" />
         <NavItem icon={<IconStar />} label="Agents" />
-        <NavItem icon={<IconStar />} label="Skills" />
-        <NavItem icon={<IconNode />} label="Nodes" />
-        <SectionLabel label="Settings" />
-        <NavItem icon={<IconSettings />} label="Config" />
-        <NavItem icon={<IconBug />} label="Debug" />
-        <NavItem icon={<IconLog />} label="Logs" />
+        <NavItem icon={<IconStar />} label="Tools & Integrations" />
+        <NavItem icon={<IconNode />} label="Environment Variables" />
+        <SectionLabel label="Manage" />
+        <NavItem icon={<IconSettings />} label="Settings" /> 
+        <NavItem icon={<IconLayers />} label="Billing" />
+        <NavItem icon={<IconChart />} label="Usage" /> 
       </div>
     </div>
   );
