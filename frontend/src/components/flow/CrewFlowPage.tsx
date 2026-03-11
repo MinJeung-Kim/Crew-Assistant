@@ -18,6 +18,33 @@ interface CrewFlowPageProps {
   onToggleSidebar: () => void;
 }
 
+const TOPIC_MAX_CHARS = 72;
+
+function getShortTopic(topic: string): string {
+  let normalized = topic.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "(no topic)";
+  }
+
+  const cutoffMarkers = [
+    "Use the following company knowledge as grounded context.",
+    "[Source ",
+  ];
+
+  for (const marker of cutoffMarkers) {
+    const markerIndex = normalized.indexOf(marker);
+    if (markerIndex > -1) {
+      normalized = normalized.slice(0, markerIndex).trim();
+    }
+  }
+
+  if (normalized.length <= TOPIC_MAX_CHARS) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, TOPIC_MAX_CHARS - 3).trimEnd()}...`;
+}
+
 function buildGraph(crewGraph: CrewGraph): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -128,6 +155,13 @@ export function CrewFlowPage({ crewGraph, onToggleSidebar }: CrewFlowPageProps) 
     return buildGraph(crewGraph);
   }, [crewGraph]);
 
+  const shortTopic = useMemo(() => {
+    if (!crewGraph) {
+      return "";
+    }
+    return getShortTopic(crewGraph.topic);
+  }, [crewGraph]);
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -146,7 +180,9 @@ export function CrewFlowPage({ crewGraph, onToggleSidebar }: CrewFlowPageProps) 
         <div className={styles.meta}>
           <div>
             <span className={styles.metaLabel}>Topic</span>
-            <span className={styles.metaValue}>{crewGraph.topic}</span>
+            <span className={`${styles.metaValue} ${styles.metaTopic}`} title={crewGraph.topic}>
+              {shortTopic}
+            </span>
           </div>
           <div>
             <span className={styles.metaLabel}>Year</span>

@@ -71,6 +71,21 @@
   font-weight: 600;
 }
 
+.metaTopic {
+  display: inline-block;
+  max-width: min(56vw, 640px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+@media (max-width: 900px) {
+  .metaTopic {
+    max-width: min(70vw, 420px);
+  }
+}
+
 .emptyState {
   margin: 12px 18px 0;
   border: 1px dashed #cbd5e1;
