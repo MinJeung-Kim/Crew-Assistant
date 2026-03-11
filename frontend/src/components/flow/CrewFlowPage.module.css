@@ -1,0 +1,138 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.menuButton {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.menuButton:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  font-family: "DM Mono", monospace;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.meta {
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid #eef2f7;
+  background: #ffffff;
+  overflow-x: auto;
+}
+
+.metaLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin-right: 8px;
+  font-family: "DM Mono", monospace;
+}
+
+.metaValue {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.emptyState {
+  margin: 12px 18px 0;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+.canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.canvasPlaceholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.agentNode,
+.taskNode {
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.nodeBadge,
+.nodeBadgeTask {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: "DM Mono", monospace;
+}
+
+.nodeBadge {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.nodeBadgeTask {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.nodeTitle {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.45;
+}
+
+.nodeText {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.42;
+}

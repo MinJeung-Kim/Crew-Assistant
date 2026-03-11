@@ -52,12 +52,48 @@ class CrewPlan:
     agents: tuple[AgentBlueprint, ...]
 
 
+@dataclass(frozen=True)
+class CrewFlowAgent:
+    id: str
+    role: str
+    goal: str
+
+
+@dataclass(frozen=True)
+class CrewFlowTask:
+    id: str
+    title: str
+    agent_id: str
+    depends_on: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CrewFlowGraph:
+    topic: str
+    target_year: int
+    agents: tuple[CrewFlowAgent, ...]
+    tasks: tuple[CrewFlowTask, ...]
+
+
+@dataclass(frozen=True)
+class CrewExecutionResult:
+    report: str
+    graph: CrewFlowGraph
+
+
 def should_route_to_crewai(user_query: str) -> bool:
     normalized = user_query.strip().lower()
     return any(keyword in normalized for keyword in ROUTE_KEYWORDS)
 
 
 def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> str:
+    return run_dynamic_research_crew_with_trace(user_query, runtime).report
+
+
+def run_dynamic_research_crew_with_trace(
+    user_query: str,
+    runtime: CrewRuntimeConfig,
+) -> CrewExecutionResult:
     # Keep CrewAI import lazy so the API can still boot even if CrewAI is unavailable.
     from crewai import Agent, Crew, LLM, Process, Task  # pylint: disable=import-outside-toplevel
 
@@ -80,6 +116,11 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         )
         for blueprint in plan.agents
     }
+    flow_agents = tuple(
+        CrewFlowAgent(id=blueprint.key, role=blueprint.role, goal=blueprint.goal)
+        for blueprint in plan.agents
+    )
+    flow_tasks: list[CrewFlowTask] = []
 
     web_context = collect_web_context(plan.topic, runtime.web_search_results)
 
@@ -99,6 +140,15 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         ),
         agent=agent_map["researcher"],
     )
+    research_task_id = "research_task"
+    flow_tasks.append(
+        CrewFlowTask(
+            id=research_task_id,
+            title="Collect trend evidence",
+            agent_id="researcher",
+            depends_on=(),
+        )
+    )
 
     trend_task = Task(
         description=(
@@ -112,9 +162,19 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         agent=agent_map["trend_analyst"],
         context=[research_task],
     )
+    trend_task_id = "trend_analysis_task"
+    flow_tasks.append(
+        CrewFlowTask(
+            id=trend_task_id,
+            title="Cluster and prioritize trends",
+            agent_id="trend_analyst",
+            depends_on=(research_task_id,),
+        )
+    )
 
     tasks: list[Task] = [research_task, trend_task]
     report_context: list[Task] = [trend_task]
+    report_context_ids: list[str] = [trend_task_id]
 
     if "market_analyst" in agent_map:
         market_task = Task(
@@ -130,6 +190,16 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         )
         tasks.append(market_task)
         report_context.append(market_task)
+        market_task_id = "market_analysis_task"
+        report_context_ids.append(market_task_id)
+        flow_tasks.append(
+            CrewFlowTask(
+                id=market_task_id,
+                title="Analyze market adoption",
+                agent_id="market_analyst",
+                depends_on=(trend_task_id,),
+            )
+        )
 
     if "risk_analyst" in agent_map:
         risk_task = Task(
@@ -145,6 +215,16 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         )
         tasks.append(risk_task)
         report_context.append(risk_task)
+        risk_task_id = "risk_analysis_task"
+        report_context_ids.append(risk_task_id)
+        flow_tasks.append(
+            CrewFlowTask(
+                id=risk_task_id,
+                title="Assess risks and compliance",
+                agent_id="risk_analyst",
+                depends_on=(trend_task_id,),
+            )
+        )
 
     if "strategy_planner" in agent_map:
         execution_task = Task(
@@ -160,6 +240,16 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         )
         tasks.append(execution_task)
         report_context.append(execution_task)
+        execution_task_id = "execution_strategy_task"
+        flow_tasks.append(
+            CrewFlowTask(
+                id=execution_task_id,
+                title="Design execution roadmap",
+                agent_id="strategy_planner",
+                depends_on=tuple(report_context_ids),
+            )
+        )
+        report_context_ids.append(execution_task_id)
 
     report_task = Task(
         description=(
@@ -175,6 +265,14 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
         context=report_context,
     )
     tasks.append(report_task)
+    flow_tasks.append(
+        CrewFlowTask(
+            id="report_task",
+            title="Generate final markdown report",
+            agent_id="report_writer",
+            depends_on=tuple(report_context_ids),
+        )
+    )
 
     crew = Crew(
         agents=list(agent_map.values()),
@@ -184,7 +282,40 @@ def run_dynamic_research_crew(user_query: str, runtime: CrewRuntimeConfig) -> st
     )
     result = crew.kickoff()
 
-    return format_report_output(str(result), plan.language)
+    flow_graph = CrewFlowGraph(
+        topic=plan.topic,
+        target_year=plan.target_year,
+        agents=flow_agents,
+        tasks=tuple(flow_tasks),
+    )
+    return CrewExecutionResult(
+        report=format_report_output(str(result), plan.language),
+        graph=flow_graph,
+    )
+
+
+def crew_graph_to_dict(graph: CrewFlowGraph) -> dict[str, object]:
+    return {
+        "topic": graph.topic,
+        "target_year": graph.target_year,
+        "agents": [
+            {
+                "id": agent.id,
+                "role": agent.role,
+                "goal": agent.goal,
+            }
+            for agent in graph.agents
+        ],
+        "tasks": [
+            {
+                "id": task.id,
+                "title": task.title,
+                "agent_id": task.agent_id,
+                "depends_on": list(task.depends_on),
+            }
+            for task in graph.tasks
+        ],
+    }
 
 
 def build_plan(user_query: str) -> CrewPlan:

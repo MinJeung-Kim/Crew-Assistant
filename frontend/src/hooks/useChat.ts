@@ -1,7 +1,25 @@
 import { useState, useCallback } from "react";
-import type { Message } from "../types/chat";
+import type { CrewGraph, Message } from "../types/chat";
 import { generateId } from "../utils";
 import { API_BASE, INITIAL_MESSAGE, SYSTEM_PROMPT } from "../constants";
+
+function isCrewGraph(value: unknown): value is CrewGraph {
+  if (!value || typeof value !== "object") return false;
+
+  const graph = value as {
+    topic?: unknown;
+    target_year?: unknown;
+    agents?: unknown;
+    tasks?: unknown;
+  };
+
+  return (
+    typeof graph.topic === "string" &&
+    typeof graph.target_year === "number" &&
+    Array.isArray(graph.agents) &&
+    Array.isArray(graph.tasks)
+  );
+}
 
 function makeInitialMessage(): Message {
   return {
@@ -16,6 +34,7 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([makeInitialMessage()]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [crewGraph, setCrewGraph] = useState<CrewGraph | null>(null);
 
   const sendMessage = useCallback(
     async (input: string, sessionId: string) => {
@@ -92,10 +111,16 @@ export function useChat() {
               const parsed = JSON.parse(payload) as {
                 token?: unknown;
                 source?: unknown;
+                crew_graph?: unknown;
               };
               if (typeof parsed.token === "string") {
                 token = parsed.token;
               }
+
+              if (isCrewGraph(parsed.crew_graph)) {
+                setCrewGraph(parsed.crew_graph);
+              }
+
               const parsedSource =
                 typeof parsed.source === "string" ? parsed.source : undefined;
               if (parsedSource) {
@@ -131,9 +156,18 @@ export function useChat() {
   const resetSession = useCallback(() => {
     setMessages([makeInitialMessage()]);
     setError(null);
+    setCrewGraph(null);
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { messages, isLoading, error, sendMessage, resetSession, clearError };
+  return {
+    messages,
+    crewGraph,
+    isLoading,
+    error,
+    sendMessage,
+    resetSession,
+    clearError,
+  };
 }

@@ -13,7 +13,8 @@ from pydantic import BaseModel, Field, field_validator
 from config import Settings, get_settings
 from crew_orchestrator import (
     CrewRuntimeConfig,
-    run_dynamic_research_crew,
+    crew_graph_to_dict,
+    run_dynamic_research_crew_with_trace,
     should_route_to_crewai,
 )
 
@@ -86,6 +87,7 @@ class ChatResponse(BaseModel):
     message: str
     session_id: str
     source: str | None = None
+    crew_graph: dict[str, object] | None = None
 
 
 def serialize_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
@@ -111,7 +113,10 @@ async def run_default_llm_chat(
     return completion.choices[0].message.content or ""
 
 
-async def run_crewai_report(user_prompt: str, settings: Settings) -> str:
+async def run_crewai_report(
+    user_prompt: str,
+    settings: Settings,
+) -> tuple[str, dict[str, object]]:
     runtime = CrewRuntimeConfig(
         llm_model=settings.llm_model,
         llm_base_url=settings.llm_base_url,
@@ -119,7 +124,12 @@ async def run_crewai_report(user_prompt: str, settings: Settings) -> str:
         crewai_model=settings.crewai_model,
         web_search_results=settings.crewai_web_search_results,
     )
-    return await asyncio.to_thread(run_dynamic_research_crew, user_prompt, runtime)
+    execution = await asyncio.to_thread(
+        run_dynamic_research_crew_with_trace,
+        user_prompt,
+        runtime,
+    )
+    return execution.report, crew_graph_to_dict(execution.graph)
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -138,8 +148,13 @@ async def chat(
 
     if settings.crewai_enabled and should_route_to_crewai(user_prompt):
         try:
-            reply = await run_crewai_report(user_prompt, settings)
-            return ChatResponse(message=reply, session_id=req.session_id, source="crewai")
+            reply, crew_graph = await run_crewai_report(user_prompt, settings)
+            return ChatResponse(
+                message=reply,
+                session_id=req.session_id,
+                source="crewai",
+                crew_graph=crew_graph,
+            )
         except Exception as exc:
             print(f"⚠️ CrewAI failed in /chat, using default LLM fallback: {exc}")
 
@@ -159,8 +174,8 @@ async def chat_stream(
     async def token_generator() -> AsyncIterator[str]:
         if settings.crewai_enabled and should_route_to_crewai(user_prompt):
             try:
-                crew_report = await run_crewai_report(user_prompt, settings)
-                yield f"data: {json.dumps({'source': 'crewai', 'token': ''}, ensure_ascii=False)}\n\n"
+                crew_report, crew_graph = await run_crewai_report(user_prompt, settings)
+                yield f"data: {json.dumps({'source': 'crewai', 'crew_graph': crew_graph, 'token': ''}, ensure_ascii=False)}\n\n"
                 for idx in range(0, len(crew_report), 140):
                     chunk = crew_report[idx : idx + 140]
                     if chunk:
