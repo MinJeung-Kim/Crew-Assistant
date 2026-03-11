@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    app = FastAPI(title="OpenClaw Gateway", lifespan=lifespan)
+    app = FastAPI(title="Orchestration", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

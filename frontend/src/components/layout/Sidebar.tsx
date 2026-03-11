@@ -64,7 +64,7 @@ export function Sidebar({ isOpen = true }: SidebarProps) {
       <NavLink to="/chat" className={styles.logo}>
         <div className={styles.logoIcon}>🦞</div>
         <div>
-          <div className={styles.logoTitle}>OPENCLAW</div>
+          <div className={styles.logoTitle}>Orchestration</div>
           <div className={styles.logoSubtitle}>GATEWAY DASHBOARD</div>
         </div>
       </NavLink>

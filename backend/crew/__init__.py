@@ -1,10 +1,5 @@
-"""Compatibility facade for CrewAI orchestration.
-
-This module keeps the previous import surface stable while the implementation
-is split into feature-focused modules under the `crew` package.
-"""
-
-from crew import (
+from .execution import run_dynamic_research_crew, run_dynamic_research_crew_with_trace
+from .models import (
     AgentBlueprint,
     CrewExecutionResult,
     CrewFlowAgent,
@@ -12,12 +7,10 @@ from crew import (
     CrewFlowTask,
     CrewPlan,
     CrewRuntimeConfig,
-    build_plan,
-    crew_graph_to_dict,
-    run_dynamic_research_crew,
-    run_dynamic_research_crew_with_trace,
-    should_route_to_crewai,
 )
+from .planning import build_plan
+from .routing import should_route_to_crewai
+from .serialization import crew_graph_to_dict
 
 __all__ = [
     "AgentBlueprint",

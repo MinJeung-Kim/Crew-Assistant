@@ -46,7 +46,7 @@ export function useChat() {
         role: "user",
         content: input.trim(),
         timestamp: new Date(),
-        source: "openclaw-control-ui",
+        source: "Orchestration-control-ui",
       };
 
       const historyPayload = [
