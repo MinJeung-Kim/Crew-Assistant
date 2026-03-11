@@ -11,8 +11,20 @@ interface Props {
   message: Message;
 }
 
+function normalizeMarkdownContent(content: string): string {
+  const hasCompactRows = content.includes("||");
+  const looksLikeTable = /\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+/.test(content);
+
+  if (!hasCompactRows || !looksLikeTable) {
+    return content;
+  }
+
+  return content.replace(/\s*\|\|\s*/g, "\n");
+}
+
 export function MessageBubble({ message }: Props) {
   const isUser = message.role === "user";
+  const markdownContent = normalizeMarkdownContent(message.content);
 
   return (
     <div
@@ -83,7 +95,7 @@ export function MessageBubble({ message }: Props) {
                 },
               }}
             >
-              {message.content}
+              {markdownContent}
             </Markdown>
           </div>
         </div>
