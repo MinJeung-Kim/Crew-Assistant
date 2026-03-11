@@ -42,7 +42,13 @@ export function useChat() {
       const assistantId = generateId();
       setMessages((prev) => [
         ...prev,
-        { id: assistantId, role: "assistant", content: "", timestamp: new Date() },
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+          source: "llm",
+        },
       ]);
 
       try {
@@ -83,9 +89,21 @@ export function useChat() {
 
             let token = payload;
             try {
-              const parsed = JSON.parse(payload) as { token?: unknown };
+              const parsed = JSON.parse(payload) as {
+                token?: unknown;
+                source?: unknown;
+              };
               if (typeof parsed.token === "string") {
                 token = parsed.token;
+              }
+              const parsedSource =
+                typeof parsed.source === "string" ? parsed.source : undefined;
+              if (parsedSource) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, source: parsedSource } : m
+                  )
+                );
               }
             } catch {
               // Fallback for legacy non-JSON streaming payloads.

@@ -129,27 +129,23 @@ export function MessageBubble({ message }: Props) {
         {!isUser && <Avatar label="A" variant="assistant" />}
 
         <div
-          className={`${styles.contentColumn} ${isUser ? styles.contentColumnUser : styles.contentColumnAssistant}`}
+          className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
         >
-          <div
-            className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
-          >
-            <div className={styles.markdown}>
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                skipHtml
-                components={markdownComponents}
-              >
-                {markdownContent}
-              </Markdown>
-            </div>
+          <div className={styles.markdown}>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              skipHtml
+              components={markdownComponents}
+            >
+              {markdownContent}
+            </Markdown>
           </div>
-
-          <MessageMeta message={message} isUser={isUser} />
         </div>
 
         {isUser && <Avatar label="U" variant="user" />}
       </div>
+
+      <MessageMeta message={message} isUser={isUser} />
     </div>
   );
 }
@@ -178,9 +174,7 @@ interface MetaProps {
 
 function MessageMeta({ message, isUser }: MetaProps) {
   return (
-    <div
-      className={`${styles.meta} ${isUser ? styles.metaAlignUser : styles.metaAlignAssistant}`}
-    >
+    <div className={`${styles.meta} ${isUser ? styles.metaUser : styles.metaAssistant}`}>
       {message.source && (
         <>
           <span className={styles.metaSource}>{message.source}</span>
@@ -189,7 +183,7 @@ function MessageMeta({ message, isUser }: MetaProps) {
       )}
       {!isUser && (
         <>
-          <span className={styles.metaRole}>Assistant</span>
+          <span className={styles.metaAssistant}>Assistant</span>
           <span className={styles.metaDot}>·</span>
         </>
       )}

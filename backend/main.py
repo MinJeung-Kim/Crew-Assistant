@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import asyncio
 import json
 from typing import Literal
 
@@ -10,6 +11,11 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel, Field, field_validator
 
 from config import Settings, get_settings
+from crew_orchestrator import (
+    CrewRuntimeConfig,
+    run_dynamic_research_crew,
+    should_route_to_crewai,
+)
 
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
@@ -79,6 +85,41 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     message: str
     session_id: str
+    source: str | None = None
+
+
+def serialize_messages(messages: list[ChatMessage]) -> list[dict[str, str]]:
+    return [{"role": m.role, "content": m.content} for m in messages]
+
+
+def latest_user_prompt(messages: list[ChatMessage]) -> str:
+    for message in reversed(messages):
+        if message.role == "user":
+            return message.content
+    return messages[-1].content
+
+
+async def run_default_llm_chat(
+    client: AsyncOpenAI,
+    settings: Settings,
+    messages: list[ChatMessage],
+) -> str:
+    completion = await client.chat.completions.create(
+        model=settings.llm_model,
+        messages=serialize_messages(messages),
+    )
+    return completion.choices[0].message.content or ""
+
+
+async def run_crewai_report(user_prompt: str, settings: Settings) -> str:
+    runtime = CrewRuntimeConfig(
+        llm_model=settings.llm_model,
+        llm_base_url=settings.llm_base_url,
+        llm_api_key=settings.llm_api_key,
+        crewai_model=settings.crewai_model,
+        web_search_results=settings.crewai_web_search_results,
+    )
+    return await asyncio.to_thread(run_dynamic_research_crew, user_prompt, runtime)
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -93,14 +134,17 @@ async def chat(
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
     client: AsyncOpenAI = app.state.llm_client
+    user_prompt = latest_user_prompt(req.messages)
 
-    completion = await client.chat.completions.create(
-        model=settings.llm_model,
-        messages=[{"role": m.role, "content": m.content} for m in req.messages],
-    )
+    if settings.crewai_enabled and should_route_to_crewai(user_prompt):
+        try:
+            reply = await run_crewai_report(user_prompt, settings)
+            return ChatResponse(message=reply, session_id=req.session_id, source="crewai")
+        except Exception as exc:
+            print(f"⚠️ CrewAI failed in /chat, using default LLM fallback: {exc}")
 
-    reply = completion.choices[0].message.content or ""
-    return ChatResponse(message=reply, session_id=req.session_id)
+    reply = await run_default_llm_chat(client, settings, req.messages)
+    return ChatResponse(message=reply, session_id=req.session_id, source="llm")
 
 
 @app.post("/chat/stream")
@@ -110,11 +154,26 @@ async def chat_stream(
 ) -> StreamingResponse:
     """SSE 스트리밍 엔드포인트 — 프론트에서 EventSource 또는 fetch + ReadableStream으로 소비"""
     client: AsyncOpenAI = app.state.llm_client
+    user_prompt = latest_user_prompt(req.messages)
 
     async def token_generator() -> AsyncIterator[str]:
+        if settings.crewai_enabled and should_route_to_crewai(user_prompt):
+            try:
+                crew_report = await run_crewai_report(user_prompt, settings)
+                yield f"data: {json.dumps({'source': 'crewai', 'token': ''}, ensure_ascii=False)}\n\n"
+                for idx in range(0, len(crew_report), 140):
+                    chunk = crew_report[idx : idx + 140]
+                    if chunk:
+                        yield f"data: {json.dumps({'token': chunk}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+            except Exception as exc:
+                print(f"⚠️ CrewAI failed in /chat/stream, using default LLM fallback: {exc}")
+
+        yield f"data: {json.dumps({'source': 'llm', 'token': ''}, ensure_ascii=False)}\n\n"
         stream = await client.chat.completions.create(
             model=settings.llm_model,
-            messages=[{"role": m.role, "content": m.content} for m in req.messages],
+            messages=serialize_messages(req.messages),
             stream=True,
         )
         async for chunk in stream:

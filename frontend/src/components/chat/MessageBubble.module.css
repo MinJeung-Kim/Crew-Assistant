@@ -96,6 +96,7 @@
   color: #9ca3af;
   font-size: 11px;
   font-family: 'DM Mono', monospace;
+  margin-left: 40px;
 }
 
 .metaUser {
@@ -103,7 +104,7 @@
 }
 
 .metaAssistant {
-  margin-left: 40px;
+  /* margin-left: 40px; */
 }
 
 .metaSource {

@@ -45,7 +45,7 @@ export function ChatInput({ isLoading, onSend, onNewSession }: Props) {
               Math.min(e.target.scrollHeight, 120) + "px";
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Message (↵ to send, Shift+↵ for line breaks, paste images)"
+          placeholder="예) 2026년 IT 트랜드 조사해서 보고서 형식으로 요약해줘"
           rows={1}
           className={styles.textarea}
         />

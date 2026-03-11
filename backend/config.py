@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,11 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: str = "http://localhost:3000"
+
+    # CrewAI
+    crewai_enabled: bool = True
+    crewai_model: str = ""
+    crewai_web_search_results: int = Field(default=6, ge=1, le=12)
 
     @property
     def cors_origins_list(self) -> list[str]:
