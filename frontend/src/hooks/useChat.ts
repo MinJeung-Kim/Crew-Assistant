@@ -54,11 +54,16 @@ export function useChat() {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        const reader = res.body!.getReader();
+        if (!res.body) {
+          throw new Error("Empty response stream");
+        }
+
+        const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let doneStreaming = false;
 
-        while (true) {
+        while (!doneStreaming) {
           const { value, done } = await reader.read();
           if (done) break;
 
@@ -67,9 +72,14 @@ export function useChat() {
           buffer = lines.pop() ?? "";
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") break;
+            const normalizedLine = line.trimEnd();
+            if (!normalizedLine.startsWith("data: ")) continue;
+
+            const payload = normalizedLine.slice(6).trim();
+            if (payload === "[DONE]") {
+              doneStreaming = true;
+              break;
+            }
 
             let token = payload;
             try {

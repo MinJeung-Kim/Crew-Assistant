@@ -115,6 +115,7 @@
   font-size: 15px;
   color: #1f2328;
   letter-spacing: -0.01em;
+  text-align: left;
 }
 
 .bubbleUser .markdown {
@@ -143,6 +144,27 @@
   font-weight: 700;
   line-height: 1.32;
   color: #0f172a;
+}
+
+.markdown h1,
+.markdown h2 {
+  text-align: center;
+}
+
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6,
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown li,
+.markdown blockquote,
+.markdown pre,
+.markdown table,
+.markdown th,
+.markdown td {
+  text-align: left;
 }
 
 .markdown h1 {
@@ -288,6 +310,10 @@
   color: #475569;
 }
 
+.markdown blockquote p {
+  text-align: center;
+}
+
 .bubbleUser .markdown blockquote {
   border-color: rgba(255, 255, 255, 0.6);
   background: rgba(0, 0, 0, 0.14);
@@ -309,6 +335,34 @@
 .bubbleUser .markdown a {
   color: #fff;
   text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
+.unsafeLink {
+  color: #64748b;
+  text-decoration: line-through;
+  text-decoration-color: #94a3b8;
+}
+
+.bubbleUser .unsafeLink {
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
+.blockedMedia {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.8em;
+}
+
+.bubbleUser .blockedMedia {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .markdown hr {

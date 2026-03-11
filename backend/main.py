@@ -1,12 +1,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import json
+from typing import Literal
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from config import Settings, get_settings
 
@@ -46,14 +47,33 @@ app = create_app()
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
 class ChatMessage(BaseModel):
-    role: str           # "user" | "assistant" | "system"
-    content: str
+    role: Literal["user", "assistant", "system"]
+    content: str = Field(min_length=1, max_length=16_000)
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        if "\x00" in value:
+            raise ValueError("content contains invalid null characters")
+        if not value.strip():
+            raise ValueError("content must not be empty")
+        return value.replace("\r\n", "\n")
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
-    session_id: str = "default"
+    messages: list[ChatMessage] = Field(min_length=1, max_length=200)
+    session_id: str = Field(default="default", min_length=1, max_length=120)
     stream: bool = False
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("session_id must not be empty")
+        if any(ord(ch) < 32 for ch in normalized):
+            raise ValueError("session_id contains control characters")
+        return normalized
 
 
 class ChatResponse(BaseModel):
@@ -104,4 +124,12 @@ async def chat_stream(
                 yield f"data: {json.dumps({'token': delta}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
-    return StreamingResponse(token_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        token_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
