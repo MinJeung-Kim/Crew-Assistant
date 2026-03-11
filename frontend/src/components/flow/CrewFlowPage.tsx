@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Background,
   Controls,
   MarkerType,
   MiniMap,
   ReactFlow,
+  useEdgesState,
+  useNodesState,
   type Edge,
   type Node,
 } from "@xyflow/react";
@@ -53,7 +55,6 @@ function buildGraph(crewGraph: CrewGraph): { nodes: Node[]; edges: Edge[] } {
     nodes.push({
       id: `agent:${agent.id}`,
       position: { x: 40, y: 56 + index * 136 },
-      draggable: false,
       data: {
         label: (
           <div className={styles.agentNode}>
@@ -78,7 +79,6 @@ function buildGraph(crewGraph: CrewGraph): { nodes: Node[]; edges: Edge[] } {
     nodes.push({
       id: `task:${task.id}`,
       position: { x: 420, y: 56 + index * 136 },
-      draggable: false,
       data: {
         label: (
           <div className={styles.taskNode}>
@@ -148,12 +148,20 @@ function buildGraph(crewGraph: CrewGraph): { nodes: Node[]; edges: Edge[] } {
 }
 
 export function CrewFlowPage({ crewGraph, onToggleSidebar }: CrewFlowPageProps) {
-  const { nodes, edges } = useMemo(() => {
+  const graphElements = useMemo(() => {
     if (!crewGraph) {
       return { nodes: [], edges: [] };
     }
     return buildGraph(crewGraph);
   }, [crewGraph]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(graphElements.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(graphElements.edges);
+
+  useEffect(() => {
+    setNodes(graphElements.nodes);
+    setEdges(graphElements.edges);
+  }, [graphElements, setEdges, setNodes]);
 
   const shortTopic = useMemo(() => {
     if (!crewGraph) {
@@ -208,6 +216,10 @@ export function CrewFlowPage({ crewGraph, onToggleSidebar }: CrewFlowPageProps) 
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodesDraggable
+            nodesConnectable={false}
             fitView
             minZoom={0.45}
             maxZoom={1.8}
