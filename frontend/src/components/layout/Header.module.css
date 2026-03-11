@@ -53,26 +53,49 @@
   gap: 8px;
 }
 
-.sessionInput {
-  padding: 5px 10px;
+.actionButton {
+  padding: 6px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  font-size: 12px;
-  font-family: 'DM Mono', monospace;
-  color: #374151;
   background: #fff;
-  width: 140px;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s ease;
-  outline: none;
 }
 
-.sessionInput:hover {
+.actionButton:hover {
   border-color: #d1d5db;
+  background: #f9fafb;
+  transform: translateY(-1px);
 }
 
-.sessionInput:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+.actionButton:active {
+  transform: translateY(0);
+}
+
+.downloadButton {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff7f7;
+}
+
+.downloadButton:hover {
+  border-color: #fca5a5;
+  background: #ffeaea;
+}
+
+.actionButton:disabled,
+.downloadButton:disabled {
+  cursor: default;
+  border-color: #e5e7eb;
+  background: #f9fafb;
+  color: #9ca3af;
+  transform: none;
 }
 
 .iconButton {

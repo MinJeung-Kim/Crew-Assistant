@@ -5,16 +5,18 @@ import styles from "./Header.module.css";
 
 interface Props {
   error: string | null;
-  sessionName: string;
-  onSessionNameChange: (name: string) => void;
   onToggleSidebar: () => void;
+  onNewSession: () => void;
+  onDownload: () => void;
+  canDownload: boolean;
 }
 
 export function Header({
   error,
-  sessionName,
-  onSessionNameChange,
   onToggleSidebar,
+  onNewSession,
+  onDownload,
+  canDownload,
 }: Props) {
   return (
     <div className={styles.header}>
@@ -38,11 +40,22 @@ export function Header({
       <div className={styles.right}>
         {error && <ErrorBadge message={error} />}
 
-        <input
-          value={sessionName}
-          onChange={(e) => onSessionNameChange(e.target.value)}
-          className={styles.sessionInput}
-        />
+        <button
+          type="button"
+          onClick={onNewSession}
+          className={styles.actionButton}
+        >
+          New session
+        </button>
+
+        <button
+          type="button"
+          onClick={onDownload}
+          disabled={!canDownload}
+          className={`${styles.actionButton} ${styles.downloadButton}`}
+        >
+          Download
+        </button>
 
         {[<IconRefresh />, <IconStop />, <IconExpand />, <IconClock />].map(
           (icon, i) => (

@@ -6,10 +6,9 @@ import styles from "./ChatInput.module.css";
 interface Props {
   isLoading: boolean;
   onSend: (text: string) => void;
-  onNewSession: () => void;
 }
 
-export function ChatInput({ isLoading, onSend, onNewSession }: Props) {
+export function ChatInput({ isLoading, onSend }: Props) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,9 +49,6 @@ export function ChatInput({ isLoading, onSend, onNewSession }: Props) {
           className={styles.textarea}
         />
         <div className={styles.actions}>
-          <button onClick={onNewSession} className={styles.newSessionButton}>
-            New session
-          </button>
           <button
             onClick={handleSend}
             disabled={!canSend}

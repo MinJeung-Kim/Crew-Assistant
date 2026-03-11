@@ -14,13 +14,13 @@ import styles from "./ChatUI.module.css";
 
 interface ChatWorkspaceProps {
   error: string | null;
-  sessionName: string;
   isLoading: boolean;
   messages: ReturnType<typeof useChat>["messages"];
-  onSessionNameChange: (name: string) => void;
   onToggleSidebar: () => void;
   onSend: (input: string) => void;
   onNewSession: () => void;
+  onDownload: () => void;
+  canDownload: boolean;
   onClearError: () => void;
 }
 
@@ -32,22 +32,23 @@ interface PlaceholderPageProps {
 
 function ChatWorkspace({
   error,
-  sessionName,
   isLoading,
   messages,
-  onSessionNameChange,
   onToggleSidebar,
   onSend,
   onNewSession,
+  onDownload,
+  canDownload,
   onClearError,
 }: ChatWorkspaceProps) {
   return (
     <>
       <Header
         error={error}
-        sessionName={sessionName}
-        onSessionNameChange={onSessionNameChange}
         onToggleSidebar={onToggleSidebar}
+        onNewSession={onNewSession}
+        onDownload={onDownload}
+        canDownload={canDownload}
       />
 
       {error && <ErrorBanner message={error} onClose={onClearError} />}
@@ -57,7 +58,6 @@ function ChatWorkspace({
       <ChatInput
         isLoading={isLoading}
         onSend={onSend}
-        onNewSession={onNewSession}
       />
     </>
   );
@@ -118,6 +118,45 @@ export default function ChatUI() {
     setSessionName(`Session ${generateId()}`);
   };
 
+  const handleDownload = () => {
+    const exportedAt = new Date();
+    const safeSession =
+      sessionName
+        .replace(/[^a-zA-Z0-9-_]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "session";
+
+    const content = [
+      "# Chat Export",
+      "",
+      `- Session: ${sessionName}`,
+      `- Exported At: ${exportedAt.toISOString()}`,
+      "",
+      ...messages.map((msg) => {
+        const roleLabel = msg.role === "user" ? "User" : "Assistant";
+        const sourceLine = msg.source ? `- Source: ${msg.source}\n` : "";
+        return `## ${roleLabel}\n- Time: ${msg.timestamp.toISOString()}\n${sourceLine}\n${msg.content}\n`;
+      }),
+    ].join("\n");
+
+    const blob = new Blob([content], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `chat-${safeSession}-${exportedAt
+      .toISOString()
+      .replace(/:/g, "-")}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
+  const canDownload = messages.length > 0;
+
   const toggleSidebar = () => {
     setSidebarOpen((open) => !open);
   };
@@ -136,13 +175,13 @@ export default function ChatUI() {
             element={
               <ChatWorkspace
                 error={error}
-                sessionName={sessionName}
                 isLoading={isLoading}
                 messages={messages}
-                onSessionNameChange={setSessionName}
                 onToggleSidebar={toggleSidebar}
                 onSend={handleSend}
                 onNewSession={handleNewSession}
+                onDownload={handleDownload}
+                canDownload={canDownload}
                 onClearError={clearError}
               />
             }
