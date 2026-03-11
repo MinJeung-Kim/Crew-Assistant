@@ -112,6 +112,22 @@
   transition: all 0.2s ease;
 }
 
+.iconGlyph {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.iconGlyph svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke: currentColor;
+}
+
 .iconButton:hover {
   border-color: #d1d5db;
   color: #6b7280;
@@ -123,6 +139,23 @@
 .iconButton:active {
   transform: translateY(0);
   box-shadow: none;
+}
+
+.iconButton:disabled {
+  cursor: default;
+  color: #d1d5db;
+  border-color: #eceff3;
+  background: #fbfcfd;
+  transform: none;
+  box-shadow: none;
+}
+
+.iconButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #eceff3;
+  color: #d1d5db;
+  background: #fbfcfd;
 }
 
 .errorBadge {

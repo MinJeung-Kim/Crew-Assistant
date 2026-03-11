@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { CrewGraph, Message } from "../types/chat";
 import { generateId } from "../utils";
 import { API_BASE, INITIAL_MESSAGE, SYSTEM_PROMPT } from "../constants";
@@ -35,6 +35,7 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [crewGraph, setCrewGraph] = useState<CrewGraph | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
     async (input: string, sessionId: string) => {
@@ -59,6 +60,10 @@ export function useChat() {
       setIsLoading(true);
 
       const assistantId = generateId();
+      const streamController = new AbortController();
+      abortControllerRef.current = streamController;
+      let receivedToken = false;
+
       setMessages((prev) => [
         ...prev,
         {
@@ -75,6 +80,7 @@ export function useChat() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: historyPayload, session_id: sessionId }),
+          signal: streamController.signal,
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -135,6 +141,7 @@ export function useChat() {
             }
 
             if (!token) continue;
+            receivedToken = true;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId ? { ...m, content: m.content + token } : m
@@ -143,17 +150,34 @@ export function useChat() {
           }
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          if (!receivedToken) {
+            setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+          }
+          return;
+        }
+
         const msg = err instanceof Error ? err.message : "Unknown error";
         setError(`LLM request failed: ${msg}`);
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
       } finally {
+        if (abortControllerRef.current === streamController) {
+          abortControllerRef.current = null;
+        }
         setIsLoading(false);
       }
     },
     [messages, isLoading]
   );
 
+  const stopStreaming = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const resetSession = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
     setMessages([makeInitialMessage()]);
     setError(null);
     setCrewGraph(null);
@@ -167,6 +191,7 @@ export function useChat() {
     isLoading,
     error,
     sendMessage,
+    stopStreaming,
     resetSession,
     clearError,
   };
