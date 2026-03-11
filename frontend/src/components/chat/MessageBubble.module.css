@@ -11,33 +11,34 @@
 
 .messageContainer {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
   margin-bottom: 20px;
   animation: fadeSlideIn 0.2s ease;
 }
 
 .messageContainerUser {
-  flex-direction: row-reverse;
-}
-
-.messageContainerAssistant {
-  flex-direction: row;
-}
-
-.bubbleWrapper {
-  max-width: min(74ch, 68%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.bubbleWrapperUser {
   align-items: flex-end;
 }
 
-.bubbleWrapperAssistant {
+.messageContainerAssistant {
   align-items: flex-start;
+}
+
+.messageRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(74ch, 68%);
+}
+
+.messageRowUser {
+  flex-direction: row;
+}
+
+.messageRowAssistant {
+  flex-direction: row;
 }
 
 .bubble {
@@ -57,7 +58,7 @@
 }
 
 .bubbleAssistant {
-  border-radius: 14px;
+  border-radius: 14px 14px 14px 4px;
   background: #fcfcfd;
   border: 1px solid #d0d7de;
   color: #24292f;
@@ -95,6 +96,14 @@
   color: #9ca3af;
   font-size: 11px;
   font-family: 'DM Mono', monospace;
+}
+
+.metaUser {
+  margin-right: 40px;
+}
+
+.metaAssistant {
+  margin-left: 40px;
 }
 
 .metaSource {
@@ -456,7 +465,7 @@
 }
 
 @media (max-width: 960px) {
-  .bubbleWrapper {
+  .messageRow {
     max-width: 80%;
   }
 }
@@ -467,7 +476,7 @@
     margin-bottom: 16px;
   }
 
-  .bubbleWrapper {
+  .messageRow {
     max-width: calc(100% - 38px);
   }
 

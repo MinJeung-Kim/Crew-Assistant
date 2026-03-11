@@ -48,14 +48,14 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
         description: "Manage agent personas, prompts, and runtime policies.",
       },
       {
-        label: "Tools & Integrations",
-        path: "/tools-integrations",
+        label: "Tools",
+        path: "/tools",
         icon: "tools",
         description: "Configure external tools, APIs, and integration health.",
       },
       {
-        label: "Environment Variables",
-        path: "/environment-variables",
+        label: "Env",
+        path: "/env",
         icon: "env",
         description: "Review and maintain environment secrets and variables.",
       },

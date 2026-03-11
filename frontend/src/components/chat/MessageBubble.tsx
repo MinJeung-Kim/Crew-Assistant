@@ -123,29 +123,33 @@ export function MessageBubble({ message }: Props) {
     <div
       className={`${styles.messageContainer} ${isUser ? styles.messageContainerUser : styles.messageContainerAssistant}`}
     >
-      {!isUser && <Avatar label="A" variant="assistant" />}
-
       <div
-        className={`${styles.bubbleWrapper} ${isUser ? styles.bubbleWrapperUser : styles.bubbleWrapperAssistant}`}
+        className={`${styles.messageRow} ${isUser ? styles.messageRowUser : styles.messageRowAssistant}`}
       >
+        {!isUser && <Avatar label="A" variant="assistant" />}
+
         <div
-          className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
+          className={`${styles.contentColumn} ${isUser ? styles.contentColumnUser : styles.contentColumnAssistant}`}
         >
-          <div className={styles.markdown}>
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              skipHtml
-              components={markdownComponents}
-            >
-              {markdownContent}
-            </Markdown>
+          <div
+            className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
+          >
+            <div className={styles.markdown}>
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                skipHtml
+                components={markdownComponents}
+              >
+                {markdownContent}
+              </Markdown>
+            </div>
           </div>
+
+          <MessageMeta message={message} isUser={isUser} />
         </div>
 
-        <MessageMeta message={message} isUser={isUser} />
+        {isUser && <Avatar label="U" variant="user" />}
       </div>
-
-      {isUser && <Avatar label="U" variant="user" />}
     </div>
   );
 }
@@ -174,7 +178,9 @@ interface MetaProps {
 
 function MessageMeta({ message, isUser }: MetaProps) {
   return (
-    <div className={styles.meta}>
+    <div
+      className={`${styles.meta} ${isUser ? styles.metaAlignUser : styles.metaAlignAssistant}`}
+    >
       {message.source && (
         <>
           <span className={styles.metaSource}>{message.source}</span>
@@ -183,7 +189,7 @@ function MessageMeta({ message, isUser }: MetaProps) {
       )}
       {!isUser && (
         <>
-          <span className={styles.metaAssistant}>Assistant</span>
+          <span className={styles.metaRole}>Assistant</span>
           <span className={styles.metaDot}>·</span>
         </>
       )}
