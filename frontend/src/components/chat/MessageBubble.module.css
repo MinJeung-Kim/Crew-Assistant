@@ -26,7 +26,7 @@
 }
 
 .bubbleWrapper {
-  max-width: 60%;
+  max-width: min(74ch, 68%);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -41,12 +41,12 @@
 }
 
 .bubble {
-  padding: 10px 14px;
-  font-size: 13.5px;
-  line-height: 1.5;
-  font-family: 'DM Sans', sans-serif;
-  white-space: pre-wrap;
+  padding: 14px 18px;
+  font-size: 15px;
+  line-height: 1.7;
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .bubbleUser {
@@ -57,11 +57,11 @@
 }
 
 .bubbleAssistant {
-  border-radius: 16px 16px 16px 4px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
-  color: #111827;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
+  background: #fcfcfd;
+  border: 1px solid #d0d7de;
+  color: #24292f;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
 }
 
 .avatar {
@@ -107,4 +107,322 @@
 
 .metaAssistant {
   color: #9ca3af;
+}
+
+/* Markdown styles */
+.markdown {
+  line-height: 1.72;
+  font-size: 15px;
+  color: #1f2328;
+  letter-spacing: -0.01em;
+}
+
+.bubbleUser .markdown {
+  color: #fff;
+}
+
+.markdown > *:first-child {
+  margin-top: 0;
+}
+
+.markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown :where(p, ul, ol, blockquote, pre, hr, table) {
+  margin: 0.95em 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 1.25em 0 0.55em;
+  font-weight: 700;
+  line-height: 1.32;
+  color: #0f172a;
+}
+
+.markdown h1 {
+  font-size: 1.65em;
+  padding-bottom: 0.28em;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.markdown h2 {
+  font-size: 1.4em;
+  padding-bottom: 0.24em;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.markdown h3 {
+  font-size: 1.2em;
+}
+
+.markdown h4 {
+  font-size: 1.05em;
+}
+
+.markdown h5,
+.markdown h6 {
+  font-size: 0.95em;
+}
+
+.markdown strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.markdown em {
+  color: #334155;
+}
+
+.bubbleUser .markdown h1,
+.bubbleUser .markdown h2,
+.bubbleUser .markdown h3,
+.bubbleUser .markdown h4,
+.bubbleUser .markdown h5,
+.bubbleUser .markdown h6,
+.bubbleUser .markdown strong,
+.bubbleUser .markdown em {
+  color: #fff;
+}
+
+.bubbleUser .markdown h1,
+.bubbleUser .markdown h2 {
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Inline code */
+.inlineCode {
+  padding: 0.16em 0.45em;
+  margin: 0;
+  font-size: 0.88em;
+  font-family: 'DM Mono', ui-monospace, monospace;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  color: #1f2328;
+}
+
+.bubbleUser .inlineCode {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* Code block */
+.codeBlock {
+  margin: 1.05em 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #d0d7de;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #d0d7de;
+}
+
+.codeHeader::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 36px;
+  background: #cbd5e1;
+  box-shadow: 14px 0 0 #cbd5e1, 28px 0 0 #cbd5e1;
+}
+
+.codeLang {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.markdown pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: auto;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+  font-family: 'DM Mono', ui-monospace, monospace;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5em;
+}
+
+.markdown li {
+  margin: 0.35em 0;
+}
+
+.markdown li > p {
+  margin: 0;
+}
+
+.markdown ul li::marker,
+.markdown ol li::marker {
+  color: #64748b;
+}
+
+.markdown blockquote {
+  padding: 0.5em 1em;
+  border-left: 3px solid #94a3b8;
+  border-radius: 0 8px 8px 0;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.bubbleUser .markdown blockquote {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.markdown a {
+  color: #0369a1;
+  text-decoration-color: rgba(3, 105, 161, 0.4);
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1.25px;
+}
+
+.markdown a:hover {
+  color: #0c4a6e;
+  text-decoration-color: #0c4a6e;
+}
+
+.bubbleUser .markdown a {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid #d0d7de;
+}
+
+.tableWrapper {
+  margin: 1em 0;
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.markdown table {
+  margin: 0;
+  width: max-content;
+  min-width: 440px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9em;
+}
+
+.markdown th,
+.markdown td {
+  padding: 9px 12px;
+  border-right: 1px solid #d0d7de;
+  border-bottom: 1px solid #d0d7de;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  font-weight: 700;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.markdown th:last-child,
+.markdown td:last-child {
+  border-right: none;
+}
+
+.markdown tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.bubbleUser .tableWrapper {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.bubbleUser .markdown th,
+.bubbleUser .markdown td {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.bubbleUser .markdown th,
+.bubbleUser .markdown tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Image styling */
+.markdown img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 0.65em 0;
+  border: 1px solid #e2e8f0;
+}
+
+.bubbleUser .markdown img {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Task list styling */
+.markdown input[type='checkbox'] {
+  margin: 0 0.45em 0 0.1em;
+  accent-color: #0ea5e9;
+  transform: translateY(1px);
+}
+
+.bubbleUser .markdown input[type='checkbox'] {
+  accent-color: #fff;
+}
+
+@media (max-width: 960px) {
+  .bubbleWrapper {
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 640px) {
+  .messageContainer {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .bubbleWrapper {
+    max-width: calc(100% - 38px);
+  }
+
+  .bubble {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .markdown {
+    font-size: 14px;
+  }
 }

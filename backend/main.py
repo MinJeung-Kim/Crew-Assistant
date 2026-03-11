@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import json
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -99,7 +100,8 @@ async def chat_stream(
         async for chunk in stream:
             delta = chunk.choices[0].delta.content
             if delta:
-                yield f"data: {delta}\n\n"
+                # SSE payload is JSON-encoded to preserve newlines and special chars.
+                yield f"data: {json.dumps({'token': delta}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(token_generator(), media_type="text/event-stream")

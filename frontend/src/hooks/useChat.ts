@@ -68,8 +68,20 @@ export function useChat() {
 
           for (const line of lines) {
             if (!line.startsWith("data: ")) continue;
-            const token = line.slice(6);
-            if (token === "[DONE]") break;
+            const payload = line.slice(6);
+            if (payload === "[DONE]") break;
+
+            let token = payload;
+            try {
+              const parsed = JSON.parse(payload) as { token?: unknown };
+              if (typeof parsed.token === "string") {
+                token = parsed.token;
+              }
+            } catch {
+              // Fallback for legacy non-JSON streaming payloads.
+            }
+
+            if (!token) continue;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId ? { ...m, content: m.content + token } : m

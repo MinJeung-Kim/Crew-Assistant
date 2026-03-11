@@ -1,3 +1,8 @@
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { Message } from "../../types/chat";
 import { formatTime } from "../../utils";
 import styles from "./MessageBubble.module.css";
@@ -21,7 +26,66 @@ export function MessageBubble({ message }: Props) {
         <div
           className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
         >
-          {message.content}
+          <div className={styles.markdown}>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+              components={{
+                code({ className, children, ...props }) {
+                  const match = /language-([\w-]+)/.exec(className || "");
+                  const codeString = String(children).replace(/\n$/, "");
+                  const isCodeBlock = Boolean(match) || codeString.includes("\n");
+                  const language = match?.[1] ?? "text";
+                  
+                  if (isCodeBlock) {
+                    return (
+                      <div className={styles.codeBlock}>
+                        <div className={styles.codeHeader}>
+                          <span className={styles.codeLang}>{language}</span>
+                        </div>
+                        <SyntaxHighlighter
+                          style={oneLight}
+                          language={match?.[1]}
+                          PreTag="div"
+                          wrapLongLines
+                          customStyle={{
+                            margin: 0,
+                            borderRadius: "0 0 10px 10px",
+                            fontSize: "13px",
+                            background: "#f8fafc",
+                          }}
+                        >
+                          {codeString}
+                        </SyntaxHighlighter>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <code className={styles.inlineCode} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                table({ children }) {
+                  return (
+                    <div className={styles.tableWrapper}>
+                      <table>{children}</table>
+                    </div>
+                  );
+                },
+                a({ href, children, ...props }) {
+                  return (
+                    <a href={href} target="_blank" rel="noreferrer noopener" {...props}>
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {message.content}
+            </Markdown>
+          </div>
         </div>
 
         <MessageMeta message={message} isUser={isUser} />
