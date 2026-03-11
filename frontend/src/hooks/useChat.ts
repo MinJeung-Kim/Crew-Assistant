@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import type { CrewGraph, Message } from "../types/chat";
+import type { CrewGraph, CrewProgress, CrewTaskStatus, Message } from "../types/chat";
 import { generateId } from "../utils";
 import { API_BASE, INITIAL_MESSAGE, SYSTEM_PROMPT } from "../constants";
 
@@ -21,6 +21,48 @@ function isCrewGraph(value: unknown): value is CrewGraph {
   );
 }
 
+function isCrewTaskStatus(value: unknown): value is CrewTaskStatus {
+  return value === "pending" || value === "running" || value === "completed" || value === "failed";
+}
+
+function isCrewProgress(value: unknown): value is CrewProgress {
+  if (!value || typeof value !== "object") return false;
+
+  const progress = value as {
+    phase?: unknown;
+    active_task_id?: unknown;
+    active_agent_id?: unknown;
+    updated_at?: unknown;
+    tasks?: unknown;
+  };
+
+  if (typeof progress.phase !== "string") return false;
+  if (!(typeof progress.active_task_id === "string" || progress.active_task_id === null)) {
+    return false;
+  }
+  if (!(typeof progress.active_agent_id === "string" || progress.active_agent_id === null)) {
+    return false;
+  }
+  if (typeof progress.updated_at !== "string") return false;
+  if (!Array.isArray(progress.tasks)) return false;
+
+  return progress.tasks.every((task) => {
+    if (!task || typeof task !== "object") return false;
+    const taskItem = task as {
+      task_id?: unknown;
+      title?: unknown;
+      agent_id?: unknown;
+      status?: unknown;
+    };
+    return (
+      typeof taskItem.task_id === "string" &&
+      typeof taskItem.title === "string" &&
+      typeof taskItem.agent_id === "string" &&
+      isCrewTaskStatus(taskItem.status)
+    );
+  });
+}
+
 function makeInitialMessage(): Message {
   return {
     id: generateId(),
@@ -36,11 +78,13 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
   const [crewGraph, setCrewGraph] = useState<CrewGraph | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [crewProgress, setCrewProgress] = useState<CrewProgress | null>(null);
 
   const sendMessage = useCallback(
     async (input: string, sessionId: string) => {
       if (!input.trim() || isLoading) return;
       setError(null);
+      setCrewProgress(null);
 
       const userMsg: Message = {
         id: generateId(),
@@ -118,6 +162,7 @@ export function useChat() {
                 token?: unknown;
                 source?: unknown;
                 crew_graph?: unknown;
+                crew_progress?: unknown;
               };
               if (typeof parsed.token === "string") {
                 token = parsed.token;
@@ -125,6 +170,10 @@ export function useChat() {
 
               if (isCrewGraph(parsed.crew_graph)) {
                 setCrewGraph(parsed.crew_graph);
+              }
+
+              if (isCrewProgress(parsed.crew_progress)) {
+                setCrewProgress(parsed.crew_progress);
               }
 
               const parsedSource =
@@ -135,6 +184,9 @@ export function useChat() {
                     m.id === assistantId ? { ...m, source: parsedSource } : m
                   )
                 );
+                if (parsedSource === "llm") {
+                  setCrewProgress(null);
+                }
               }
             } catch {
               // Fallback for legacy non-JSON streaming payloads.
@@ -200,6 +252,7 @@ export function useChat() {
     setMessages([makeInitialMessage()]);
     setError(null);
     setCrewGraph(null);
+    setCrewProgress(null);
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
@@ -207,6 +260,7 @@ export function useChat() {
   return {
     messages,
     crewGraph,
+    crewProgress,
     isLoading,
     error,
     sendMessage,

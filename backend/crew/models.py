@@ -43,6 +43,8 @@ class CrewFlowTask:
     title: str
     agent_id: str
     depends_on: tuple[str, ...]
+    description: str = ""
+    expected_output: str = ""
 
 
 @dataclass(frozen=True)

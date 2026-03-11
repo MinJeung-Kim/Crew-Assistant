@@ -19,6 +19,8 @@ def crew_graph_to_dict(graph: CrewFlowGraph) -> dict[str, object]:
                 "title": task.title,
                 "agent_id": task.agent_id,
                 "depends_on": list(task.depends_on),
+                "description": task.description,
+                "expected_output": task.expected_output,
             }
             for task in graph.tasks
         ],

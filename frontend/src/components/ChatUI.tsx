@@ -136,6 +136,7 @@ export default function ChatUI() {
   const {
     messages,
     crewGraph,
+    crewProgress,
     isLoading,
     error,
     sendMessage,
@@ -245,6 +246,7 @@ export default function ChatUI() {
         content: msg.content,
       })),
       crew_graph: crewGraph,
+      crew_progress: crewProgress,
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -370,6 +372,7 @@ export default function ChatUI() {
                 page.path === "/agents" ? (
                   <CrewFlowPage
                     crewGraph={crewGraph}
+                    crewProgress={crewProgress}
                     onToggleSidebar={toggleSidebar}
                   />
                 ) : (

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 import asyncio
 import json
@@ -216,6 +216,7 @@ async def run_crewai_report(
     user_prompt: str,
     settings: Settings,
     company_context: str,
+    on_progress: Callable[[dict[str, object]], None] | None = None,
 ) -> tuple[str, dict[str, object]]:
     prompt_for_execution = user_prompt
     if company_context:
@@ -236,6 +237,7 @@ async def run_crewai_report(
         run_dynamic_research_crew_with_trace,
         prompt_for_execution,
         runtime,
+        on_progress,
     )
     return execution.report, crew_graph_to_dict(execution.graph)
 
@@ -412,11 +414,64 @@ async def chat_stream(
     async def token_generator() -> AsyncIterator[str]:
         if settings.crewai_enabled and should_route_to_crewai(user_prompt):
             try:
-                crew_report, crew_graph = await run_crewai_report(
-                    user_prompt,
-                    settings,
-                    company_context,
+                loop = asyncio.get_running_loop()
+                progress_queue: asyncio.Queue[dict[str, object]] = asyncio.Queue()
+
+                def on_crewai_progress(event: dict[str, object]) -> None:
+                    loop.call_soon_threadsafe(progress_queue.put_nowait, event)
+
+                crew_task = asyncio.create_task(
+                    run_crewai_report(
+                        user_prompt,
+                        settings,
+                        company_context,
+                        on_progress=on_crewai_progress,
+                    )
                 )
+
+                yield f"data: {json.dumps({'source': 'crewai', 'knowledge_sources': knowledge_sources, 'token': ''}, ensure_ascii=False)}\n\n"
+
+                while not crew_task.done():
+                    try:
+                        progress_event = await asyncio.wait_for(
+                            progress_queue.get(),
+                            timeout=0.25,
+                        )
+                    except asyncio.TimeoutError:
+                        continue
+
+                    payload: dict[str, object] = {
+                        "source": "crewai",
+                        "knowledge_sources": knowledge_sources,
+                        "crew_progress": progress_event,
+                        "token": "",
+                    }
+                    graph_payload = progress_event.get("crew_graph")
+                    if isinstance(graph_payload, dict):
+                        payload["crew_graph"] = graph_payload
+
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+                crew_report, crew_graph = await crew_task
+
+                while True:
+                    try:
+                        progress_event = progress_queue.get_nowait()
+                    except asyncio.QueueEmpty:
+                        break
+
+                    payload: dict[str, object] = {
+                        "source": "crewai",
+                        "knowledge_sources": knowledge_sources,
+                        "crew_progress": progress_event,
+                        "token": "",
+                    }
+                    graph_payload = progress_event.get("crew_graph")
+                    if isinstance(graph_payload, dict):
+                        payload["crew_graph"] = graph_payload
+
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
                 yield f"data: {json.dumps({'source': 'crewai', 'crew_graph': crew_graph, 'knowledge_sources': knowledge_sources, 'token': ''}, ensure_ascii=False)}\n\n"
                 for idx in range(0, len(crew_report), 140):
                     chunk = crew_report[idx : idx + 140]

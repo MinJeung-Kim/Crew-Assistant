@@ -24,6 +24,8 @@ export interface CrewGraphTask {
   title: string;
   agent_id: string;
   depends_on: string[];
+  description?: string;
+  expected_output?: string;
 }
 
 export interface CrewGraph {
@@ -31,4 +33,22 @@ export interface CrewGraph {
   target_year: number;
   agents: CrewGraphAgent[];
   tasks: CrewGraphTask[];
+}
+
+export type CrewTaskStatus = "pending" | "running" | "completed" | "failed";
+
+export interface CrewProgressTask {
+  task_id: string;
+  title: string;
+  agent_id: string;
+  status: CrewTaskStatus;
+}
+
+export interface CrewProgress {
+  phase: string;
+  active_task_id: string | null;
+  active_agent_id: string | null;
+  detail?: string | null;
+  updated_at: string;
+  tasks: CrewProgressTask[];
 }
