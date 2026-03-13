@@ -10,6 +10,8 @@ import math
 from pathlib import Path
 import re
 from typing import Any
+import zipfile
+import xml.etree.ElementTree as ET
 
 from openai import AsyncOpenAI
 
@@ -225,18 +227,98 @@ def extract_text_from_upload(filename: str, content: bytes) -> str:
         return "\n\n".join(text for text in page_texts if text)
 
     if extension == ".docx":
-        try:
-            docx_module = importlib.import_module("docx")
-            document_cls = getattr(docx_module, "Document")
-        except Exception as exc:
-            raise ValueError("DOCX parsing requires python-docx package") from exc
-
-        doc = document_cls(BytesIO(content))
-        paragraphs = [paragraph.text.strip() for paragraph in doc.paragraphs]
-        return "\n\n".join(text for text in paragraphs if text)
+        return extract_docx_text(content)
 
     # Fallback for unknown extensions.
     return decode_text_bytes(content)
+
+
+def extract_docx_text(content: bytes) -> str:
+    try:
+        docx_module = importlib.import_module("docx")
+        document_cls = getattr(docx_module, "Document")
+        doc = document_cls(BytesIO(content))
+    except Exception:
+        return extract_docx_text_from_archive(content)
+
+    paragraphs = [paragraph.text.strip() for paragraph in doc.paragraphs]
+
+    table_rows: list[str] = []
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [re.sub(r"\s+", " ", cell.text).strip() for cell in row.cells]
+            non_empty_cells = [cell for cell in cells if cell]
+            if non_empty_cells:
+                table_rows.append(" | ".join(non_empty_cells))
+
+    sections: list[str] = []
+    paragraph_text = "\n\n".join(text for text in paragraphs if text)
+    if paragraph_text:
+        sections.append(paragraph_text)
+    if table_rows:
+        sections.append("\n".join(table_rows))
+
+    extracted = "\n\n".join(sections).strip()
+    if extracted:
+        return extracted
+
+    return extract_docx_text_from_archive(content)
+
+
+def extract_docx_text_from_archive(content: bytes) -> str:
+    try:
+        with zipfile.ZipFile(BytesIO(content)) as archive:
+            document_xml = archive.read("word/document.xml")
+    except Exception as exc:
+        raise ValueError("Invalid DOCX file") from exc
+
+    try:
+        root = ET.fromstring(document_xml)
+    except ET.ParseError as exc:
+        raise ValueError("Invalid DOCX document.xml content") from exc
+
+    return extract_docx_text_from_xml_root(root)
+
+
+def extract_docx_text_from_xml_root(root: ET.Element) -> str:
+    namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    w_tag = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    body = root.find("w:body", namespace)
+    if body is None:
+        return ""
+
+    blocks: list[str] = []
+    for child in list(body):
+        if child.tag == f"{w_tag}p":
+            paragraph_text = extract_docx_paragraph_text(child, namespace)
+            if paragraph_text:
+                blocks.append(paragraph_text)
+            continue
+
+        if child.tag == f"{w_tag}tbl":
+            for row in child.findall("w:tr", namespace):
+                cells: list[str] = []
+                for cell in row.findall("w:tc", namespace):
+                    cell_parts = [
+                        extract_docx_paragraph_text(paragraph, namespace)
+                        for paragraph in cell.findall(".//w:p", namespace)
+                    ]
+                    normalized_parts = [part for part in cell_parts if part]
+                    if normalized_parts:
+                        cells.append(" ".join(normalized_parts))
+
+                if cells:
+                    blocks.append(" | ".join(cells))
+
+    return "\n\n".join(blocks)
+
+
+def extract_docx_paragraph_text(
+    paragraph: ET.Element,
+    namespace: dict[str, str],
+) -> str:
+    fragments = [node.text or "" for node in paragraph.findall(".//w:t", namespace)]
+    return re.sub(r"\s+", " ", "".join(fragments)).strip()
 
 
 async def embed_texts(
