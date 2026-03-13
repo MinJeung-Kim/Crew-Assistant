@@ -63,8 +63,39 @@ POST /integrations/env
 ```json
 {
 	"google_api_key": "AIza... or ya29...",
-	"slack_api_key": "xoxb..."
+	"slack_invite_link": "https://join.slack.com/t/<workspace>/shared_invite/<token>"
 }
+```
+
+- Optional fallback (legacy):
+
+```json
+{
+	"slack_api_key": "xoxp... or xoxa-2..."
+}
+```
+
+- OAuth client JSON upload + key issuance endpoints:
+
+```bash
+GET /integrations/google/oauth-client/status
+POST /integrations/google/oauth-client
+GET /integrations/google/oauth/start
+POST /integrations/google/oauth/installed/issue
+```
+
+- Installed client JSON(`{"installed": {...}}`) flow:
+1. Upload installed JSON on Env page
+2. Click `key 발급` (backend runs InstalledAppFlow local server)
+3. Google login/consent once
+4. `data/oauth/token.json` saved
+5. access_token auto refreshes from refresh_token on next runs
+
+- Related environment variables:
+
+```env
+GOOGLE_OAUTH_TOKEN_PATH=./data/oauth/token.json
+GOOGLE_OAUTH_INSTALLED_PORT=8080
 ```
 
 - Chat trigger format for onboarding automation:
@@ -79,11 +110,29 @@ POST /integrations/env
 [홍길동] [플랫폼개발팀] [2026-03-17] [hong@example.com]
 ```
 
+- If Slack Invite Link is saved in Tools, onboarding email includes that link automatically.
+- If Slack Invite Link is missing, chat asks for runtime shared invite URL.
+- Legacy fallback: if admin token is configured, backend can still call Slack invite API.
+
+```text
+https://join.slack.com/t/<workspace>/shared_invite/<token>
+```
+
+- Notes for Slack invite step:
+1. Input is session-scoped pending state (default TTL: 10 minutes).
+2. 공유 초대 링크(shared_invite URL)는 온보딩 이메일 본문에 그대로 포함됩니다.
+3. Admin token 경로를 사용할 때는 `xoxp-` 또는 `xoxa-2-` 형식과 `auth.test` 검증이 필요합니다.
+4. You can cancel pending onboarding input with `취소` or `cancel`.
+
 - Triggered actions:
 1. Google Drive onboarding files search
 2. 입사/온보딩 파일 요약 생성
 3. 신규 입사자 이메일 발송 시도 (OAuth 토큰일 때)
-4. Slack 초대 API 호출
+4. Slack 초대 링크 이메일 포함 또는 Slack 초대 API 호출(legacy)
+
+- Google OAuth scope requirements:
+1. Drive search: `https://www.googleapis.com/auth/drive.readonly` or `https://www.googleapis.com/auth/drive.metadata.readonly`
+2. Gmail send: `https://www.googleapis.com/auth/gmail.send`
 
 - Check ingestion status:
 

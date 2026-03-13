@@ -27,9 +27,8 @@ interface NavItemProps {
 const ICON_BY_KEY: Record<NavIconKey, ReactNode> = {
   chat: <IconChat />,
   overview: <IconChart />,
-  agents: <IconStar />,
-  tools: <IconStar />,
-  env: <IconNode />,
+  flow: <IconStar />,
+  tools: <IconNode />,
   settings: <IconSettings />,
   billing: <IconLayers />,
   usage: <IconChart />,
@@ -62,7 +61,7 @@ export function Sidebar({ isOpen = true }: SidebarProps) {
   return (
     <div className={`${styles.sidebar} ${!isOpen ? styles.sidebarCollapsed : ''}`}>
       <NavLink to="/chat" className={styles.logo}>
-        <div className={styles.logoIcon}>🦞</div>
+        <div className={styles.logoIcon}>🪄</div>
         <div>
           <div className={styles.logoTitle}>Orchestration</div>
           <div className={styles.logoSubtitle}>GATEWAY DASHBOARD</div>

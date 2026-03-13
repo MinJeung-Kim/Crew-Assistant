@@ -9,9 +9,18 @@ import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { IconMenu } from "./icons";
 import { CrewFlowPage } from "./flow/CrewFlowPage";
-import { EnvPage } from "./env/EnvPage";
+import { ToolsPage } from "./tools/ToolsPage";
 import { generateId } from "../utils";
-import { API_BASE } from "../constants";
+import {
+  buildCrewReportExport,
+  buildDownloadFileName,
+  buildHistoryExportPayload,
+  downloadReportAsPdf,
+  downloadReportAsDoc,
+  triggerBlobDownload,
+  type DownloadFormat,
+} from "../utils/chatExport";
+import { uploadKnowledgeFile } from "../services/knowledgeApi";
 import styles from "./ChatUI.module.css";
 
 interface ChatWorkspaceProps {
@@ -21,8 +30,9 @@ interface ChatWorkspaceProps {
   onToggleSidebar: () => void;
   onSend: (input: string) => void;
   onNewSession: () => void;
-  onDownload: () => void;
+  onDownload: (format: DownloadFormat) => void;
   canDownload: boolean;
+  onTranslateMessage: (id: string, translatedContent: string, showTranslated: boolean) => void;
   onUploadKnowledge: (file: File) => void;
   isUploadingKnowledge: boolean;
   onRefresh: () => void;
@@ -51,6 +61,7 @@ function ChatWorkspace({
   onNewSession,
   onDownload,
   canDownload,
+  onTranslateMessage,
   onUploadKnowledge,
   isUploadingKnowledge,
   onRefresh,
@@ -85,7 +96,7 @@ function ChatWorkspace({
 
       {error && <ErrorBanner message={error} onClose={onClearError} />}
 
-      <MessageList messages={messages} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading} onTranslateMessage={onTranslateMessage} />
 
       <ChatInput
         isLoading={isLoading}
@@ -145,6 +156,7 @@ export default function ChatUI() {
     appendAssistantMessage,
     resetSession,
     clearError,
+    updateMessageTranslation,
   } = useChat();
 
   useEffect(() => {
@@ -167,41 +179,20 @@ export default function ChatUI() {
     setSessionName(`Session ${generateId()}`);
   };
 
-  const handleDownload = () => {
+  const handleDownload = (format: DownloadFormat) => {
     const exportedAt = new Date();
-    const safeSession =
-      sessionName
-        .replace(/[^a-zA-Z0-9-_]+/g, "_")
-        .replace(/^_+|_+$/g, "") || "session";
-
-    const content = [
-      "# Chat Export",
-      "",
-      `- Session: ${sessionName}`,
-      `- Exported At: ${exportedAt.toISOString()}`,
-      "",
-      ...messages.map((msg) => {
-        const roleLabel = msg.role === "user" ? "User" : "Assistant";
-        const sourceLine = msg.source ? `- Source: ${msg.source}\n` : "";
-        return `## ${roleLabel}\n- Time: ${msg.timestamp.toISOString()}\n${sourceLine}\n${msg.content}\n`;
-      }),
-    ].join("\n");
-
-    const blob = new Blob([content], {
-      type: "text/markdown;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `chat-${safeSession}-${exportedAt
-      .toISOString()
-      .replace(/:/g, "-")}.md`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+    const content = buildCrewReportExport(sessionName, exportedAt, messages);
+    if (format === "pdf") {
+      downloadReportAsPdf(sessionName, content);
+      return;
+    }
+    const ext = format === "doc" ? "doc" : "md";
+    const fileName = buildDownloadFileName("report", sessionName, exportedAt, ext);
+    if (format === "doc") {
+      downloadReportAsDoc(sessionName, content, fileName);
+      return;
+    }
+    triggerBlobDownload(content, "text/markdown;charset=utf-8", fileName);
   };
 
   const handleRefresh = () => {
@@ -232,39 +223,19 @@ export default function ChatUI() {
 
   const handleHistory = () => {
     const exportedAt = new Date();
-    const safeSession =
-      sessionName
-        .replace(/[^a-zA-Z0-9-_]+/g, "_")
-        .replace(/^_+|_+$/g, "") || "session";
-
-    const payload = {
-      session: sessionName,
-      exported_at: exportedAt.toISOString(),
-      entries: messages.map((msg) => ({
-        role: msg.role,
-        source: msg.source ?? null,
-        timestamp: msg.timestamp.toISOString(),
-        content: msg.content,
-      })),
-      crew_graph: crewGraph,
-      crew_progress: crewProgress,
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `history-${safeSession}-${exportedAt
-      .toISOString()
-      .replace(/:/g, "-")}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+    const payload = buildHistoryExportPayload(
+      sessionName,
+      exportedAt,
+      messages,
+      crewGraph,
+      crewProgress
+    );
+    const fileName = buildDownloadFileName("history", sessionName, exportedAt, "json");
+    triggerBlobDownload(
+      JSON.stringify(payload, null, 2),
+      "application/json;charset=utf-8",
+      fileName
+    );
   };
 
   const handleUploadKnowledge = async (file: File) => {
@@ -272,34 +243,7 @@ export default function ChatUI() {
 
     setIsUploadingKnowledge(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch(`${API_BASE}/knowledge/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = (await res.json().catch(() => ({}))) as {
-        detail?: unknown;
-        chunk_count?: unknown;
-        total_chunks?: unknown;
-      };
-
-      if (!res.ok) {
-        const detail =
-          typeof payload.detail === "string"
-            ? payload.detail
-            : `HTTP ${res.status}`;
-        throw new Error(detail);
-      }
-
-      const chunkCount =
-        typeof payload.chunk_count === "number" ? payload.chunk_count : 0;
-      const totalChunks =
-        typeof payload.total_chunks === "number"
-          ? payload.total_chunks
-          : chunkCount;
+      const { chunkCount, totalChunks } = await uploadKnowledgeFile(file);
 
       appendAssistantMessage(
         [
@@ -321,7 +265,7 @@ export default function ChatUI() {
     }
   };
 
-  const canDownload = messages.length > 0;
+  const canDownload = messages.some((msg) => msg.source === "crewai");
   const canRefresh = messages.some((msg) => msg.role === "user") && !isLoading;
   const canStop = isLoading;
   const canHistory = messages.length > 0;
@@ -339,6 +283,8 @@ export default function ChatUI() {
       <div className={styles.mainContent}>
         <Routes>
           <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/env" element={<Navigate to="/tools" replace />} />
+          <Route path="/agents" element={<Navigate to="/flow" replace />} />
           <Route
             path="/chat"
             element={
@@ -350,8 +296,7 @@ export default function ChatUI() {
                 onSend={handleSend}
                 onNewSession={handleNewSession}
                 onDownload={handleDownload}
-                canDownload={canDownload}
-                onUploadKnowledge={handleUploadKnowledge}
+                canDownload={canDownload}              onTranslateMessage={updateMessageTranslation}                onUploadKnowledge={handleUploadKnowledge}
                 isUploadingKnowledge={isUploadingKnowledge}
                 onRefresh={handleRefresh}
                 onStop={handleStop}
@@ -370,14 +315,14 @@ export default function ChatUI() {
               key={page.path}
               path={page.path}
               element={
-                page.path === "/agents" ? (
+                page.path === "/flow" ? (
                   <CrewFlowPage
                     crewGraph={crewGraph}
                     crewProgress={crewProgress}
                     onToggleSidebar={toggleSidebar}
                   />
-                ) : page.path === "/env" ? (
-                  <EnvPage onToggleSidebar={toggleSidebar} />
+                ) : page.path === "/tools" ? (
+                  <ToolsPage onToggleSidebar={toggleSidebar} />
                 ) : (
                   <PlaceholderPage
                     title={page.label}

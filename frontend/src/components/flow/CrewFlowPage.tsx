@@ -269,22 +269,25 @@ export function CrewFlowPage({ crewGraph, crewProgress, onToggleSidebar }: CrewF
     return getShortTopic(crewGraph.topic);
   }, [crewGraph]);
 
+  const activeTaskId = crewProgress?.active_task_id ?? null;
+  const activeAgentId = crewProgress?.active_agent_id ?? null;
+
   const activeTask = useMemo(() => {
-    if (!crewGraph || !crewProgress?.active_task_id) {
+    if (!crewGraph || !activeTaskId) {
       return null;
     }
-    return crewGraph.tasks.find((task) => task.id === crewProgress.active_task_id) ?? null;
-  }, [crewGraph, crewProgress?.active_task_id]);
+    return crewGraph.tasks.find((task) => task.id === activeTaskId) ?? null;
+  }, [crewGraph, activeTaskId]);
 
   const activeAgentRole = useMemo(() => {
-    if (!crewGraph || !crewProgress?.active_agent_id) {
+    if (!crewGraph || !activeAgentId) {
       return null;
     }
     return (
-      crewGraph.agents.find((agent) => agent.id === crewProgress.active_agent_id)?.role
-      ?? crewProgress.active_agent_id
+      crewGraph.agents.find((agent) => agent.id === activeAgentId)?.role
+      ?? activeAgentId
     );
-  }, [crewGraph, crewProgress?.active_agent_id]);
+  }, [crewGraph, activeAgentId]);
 
   const runningLabel = activeTask && activeAgentRole
     ? `${activeAgentRole} - ${activeTask.title}`

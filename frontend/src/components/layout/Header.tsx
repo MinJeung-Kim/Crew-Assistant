@@ -1,7 +1,8 @@
-import { useRef, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import {
   IconRefresh, IconStop, IconExpand, IconClock, IconMenu,
 } from "../icons";
+import type { DownloadFormat } from "../../utils/chatExport";
 import styles from "./Header.module.css";
 
 const HEADER_ICON_ACTIONS = [
@@ -11,11 +12,17 @@ const HEADER_ICON_ACTIONS = [
   { id: "history", label: "History", icon: <IconClock /> },
 ] as const;
 
+const DOWNLOAD_FORMATS: { format: DownloadFormat; label: string }[] = [
+  { format: "md", label: "Markdown (.md)" },
+  { format: "pdf", label: "PDF (.pdf)" },
+  { format: "doc", label: "Word (.doc)" },
+];
+
 interface Props {
   error: string | null;
   onToggleSidebar: () => void;
   onNewSession: () => void;
-  onDownload: () => void;
+  onDownload: (format: DownloadFormat) => void;
   canDownload: boolean;
   onUploadKnowledge: (file: File) => void;
   isUploadingKnowledge: boolean;
@@ -47,6 +54,19 @@ export function Header({
   isFullscreen,
 }: Props) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const downloadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!downloadRef.current?.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen]);
 
   const handleUploadClick = () => {
     uploadInputRef.current?.click();
@@ -122,14 +142,34 @@ export function Header({
           New session
         </button>
 
-        <button
-          type="button"
-          onClick={onDownload}
-          disabled={!canDownload}
-          className={`${styles.actionButton} ${styles.downloadButton}`}
-        >
-          Download
-        </button>
+        <div ref={downloadRef} className={styles.downloadWrapper}>
+          <button
+            type="button"
+            disabled={!canDownload}
+            onClick={() => setDropdownOpen((o) => !o)}
+            className={`${styles.actionButton} ${styles.downloadButton}`}
+          >
+            Download
+            <span className={styles.chevron}>{dropdownOpen ? "▴" : "▾"}</span>
+          </button>
+          {dropdownOpen && (
+            <div className={styles.downloadDropdown}>
+              {DOWNLOAD_FORMATS.map(({ format, label }) => (
+                <button
+                  key={format}
+                  type="button"
+                  className={styles.dropdownItem}
+                  onClick={() => {
+                    onDownload(format);
+                    setDropdownOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"

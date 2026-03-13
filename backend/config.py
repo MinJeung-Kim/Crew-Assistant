@@ -32,11 +32,20 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = Field(default=120, ge=0, le=500)
     rag_max_upload_mb: int = Field(default=20, ge=1, le=200)
 
+    # Google Drive shared context for chat
+    google_drive_context_enabled: bool = True
+    google_drive_context_results: int = Field(default=4, ge=1, le=12)
+    google_drive_context_max_chars: int = Field(default=1400, ge=300, le=6000)
+    google_drive_context_max_file_bytes: int = Field(default=4_000_000, ge=100_000, le=20_000_000)
+
     # Integrations (Env page)
     google_api_key: str = ""
     slack_api_key: str = ""
+    slack_invite_link: str = ""
     slack_team_id: str = ""
     onboarding_drive_file_limit: int = Field(default=8, ge=1, le=20)
+    google_oauth_token_path: str = "./data/oauth/token.json"
+    google_oauth_installed_port: int = Field(default=8080, ge=1, le=65535)
 
     @property
     def cors_origins_list(self) -> list[str]:

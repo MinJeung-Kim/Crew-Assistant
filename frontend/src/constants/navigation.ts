@@ -1,9 +1,8 @@
 export type NavIconKey =
   | "chat"
   | "overview"
-  | "agents"
+  | "flow"
   | "tools"
-  | "env"
   | "settings"
   | "billing"
   | "usage";
@@ -22,14 +21,9 @@ export interface NavSectionConfig {
 
 export const NAV_SECTIONS: NavSectionConfig[] = [
   {
-    label: "Build",
+    label: "",
     items: [
-      {
-        label: "Chat",
-        path: "/chat",
-        icon: "chat",
-        description: "Direct gateway chat session for quick interventions.",
-      },
+     
       {
         label: "Overview",
         path: "/overview",
@@ -39,24 +33,23 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
     ],
   },
   {
-    label: "Agent",
-    items: [
+    label: "Build",
+    items: [ {
+        label: "Chat",
+        path: "/chat",
+        icon: "chat",
+        description: "Direct gateway chat session for quick interventions.",
+      },
       {
-        label: "Agents",
-        path: "/agents",
-        icon: "agents",
-        description: "Manage agent personas, prompts, and runtime policies.",
+        label: "Flow",
+        path: "/flow",
+        icon: "flow",
+        description: "Visualize CrewAI execution flow across agents and tasks.",
       },
       {
         label: "Tools",
         path: "/tools",
         icon: "tools",
-        description: "Configure external tools, APIs, and integration health.",
-      },
-      {
-        label: "Env",
-        path: "/env",
-        icon: "env",
         description: "Review and maintain environment secrets and variables.",
       },
     ],

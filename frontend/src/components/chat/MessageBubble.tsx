@@ -10,6 +10,7 @@ import styles from "./MessageBubble.module.css";
 
 interface Props {
   message: Message;
+  onTranslate?: (translatedContent: string, showTranslated: boolean) => void;
 }
 
 const ALLOWED_URL_SCHEMES = new Set(["http", "https", "mailto", "tel"]);
@@ -117,12 +118,13 @@ const markdownComponents: Components = {
   },
 };
 
-export function MessageBubble({ message }: Props) {
+export function MessageBubble({ message, onTranslate }: Props) {
   const isUser = message.role === "user";
-  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
-  const [showTranslated, setShowTranslated] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
+
+  const translatedContent = message.translatedContent ?? null;
+  const showTranslated = message.showTranslated ?? false;
 
   const canTranslate = useMemo(
     () => !isUser && /[A-Za-z]/.test(message.content),
@@ -135,8 +137,6 @@ export function MessageBubble({ message }: Props) {
   const markdownContent = normalizeMarkdownContent(displayContent);
 
   useEffect(() => {
-    setTranslatedContent(null);
-    setShowTranslated(false);
     setIsTranslating(false);
     setTranslationError(null);
   }, [message.id, message.content]);
@@ -145,7 +145,7 @@ export function MessageBubble({ message }: Props) {
     if (!canTranslate || isTranslating) return;
 
     if (translatedContent) {
-      setShowTranslated((prev) => !prev);
+      onTranslate?.(translatedContent, !showTranslated);
       return;
     }
 
@@ -184,8 +184,7 @@ export function MessageBubble({ message }: Props) {
         throw new Error("번역 결과가 비어 있습니다.");
       }
 
-      setTranslatedContent(translatedText);
-      setShowTranslated(true);
+      onTranslate?.(translatedText, true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setTranslationError(msg);

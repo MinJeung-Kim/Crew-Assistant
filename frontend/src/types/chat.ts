@@ -6,6 +6,8 @@ export interface Message {
   content: string;
   timestamp: Date;
   source?: string;
+  translatedContent?: string;
+  showTranslated?: boolean;
 }
 
 export interface ChatPayloadMessage {

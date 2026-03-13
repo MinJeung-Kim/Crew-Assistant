@@ -1,67 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-import type { CrewGraph, CrewProgress, CrewTaskStatus, Message } from "../types/chat";
+import type { CrewGraph, CrewProgress, Message } from "../types/chat";
 import { generateId } from "../utils";
 import { API_BASE, INITIAL_MESSAGE, SYSTEM_PROMPT } from "../constants";
-
-function isCrewGraph(value: unknown): value is CrewGraph {
-  if (!value || typeof value !== "object") return false;
-
-  const graph = value as {
-    topic?: unknown;
-    target_year?: unknown;
-    agents?: unknown;
-    tasks?: unknown;
-  };
-
-  return (
-    typeof graph.topic === "string" &&
-    typeof graph.target_year === "number" &&
-    Array.isArray(graph.agents) &&
-    Array.isArray(graph.tasks)
-  );
-}
-
-function isCrewTaskStatus(value: unknown): value is CrewTaskStatus {
-  return value === "pending" || value === "running" || value === "completed" || value === "failed";
-}
-
-function isCrewProgress(value: unknown): value is CrewProgress {
-  if (!value || typeof value !== "object") return false;
-
-  const progress = value as {
-    phase?: unknown;
-    active_task_id?: unknown;
-    active_agent_id?: unknown;
-    updated_at?: unknown;
-    tasks?: unknown;
-  };
-
-  if (typeof progress.phase !== "string") return false;
-  if (!(typeof progress.active_task_id === "string" || progress.active_task_id === null)) {
-    return false;
-  }
-  if (!(typeof progress.active_agent_id === "string" || progress.active_agent_id === null)) {
-    return false;
-  }
-  if (typeof progress.updated_at !== "string") return false;
-  if (!Array.isArray(progress.tasks)) return false;
-
-  return progress.tasks.every((task) => {
-    if (!task || typeof task !== "object") return false;
-    const taskItem = task as {
-      task_id?: unknown;
-      title?: unknown;
-      agent_id?: unknown;
-      status?: unknown;
-    };
-    return (
-      typeof taskItem.task_id === "string" &&
-      typeof taskItem.title === "string" &&
-      typeof taskItem.agent_id === "string" &&
-      isCrewTaskStatus(taskItem.status)
-    );
-  });
-}
+import { parseSseChunk } from "../services/chatStream";
 
 function makeInitialMessage(): Message {
   return {
@@ -142,61 +83,43 @@ export function useChat() {
           const { value, done } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? "";
+          const chunkText = decoder.decode(value, { stream: true });
+          const parsedChunk = parseSseChunk(chunkText, buffer);
+          buffer = parsedChunk.pendingBuffer;
 
-          for (const line of lines) {
-            const normalizedLine = line.trimEnd();
-            if (!normalizedLine.startsWith("data: ")) continue;
-
-            const payload = normalizedLine.slice(6).trim();
-            if (payload === "[DONE]") {
+          for (const event of parsedChunk.events) {
+            if (event.done) {
               doneStreaming = true;
               break;
             }
 
-            let token = payload;
-            try {
-              const parsed = JSON.parse(payload) as {
-                token?: unknown;
-                source?: unknown;
-                crew_graph?: unknown;
-                crew_progress?: unknown;
-              };
-              if (typeof parsed.token === "string") {
-                token = parsed.token;
-              }
-
-              if (isCrewGraph(parsed.crew_graph)) {
-                setCrewGraph(parsed.crew_graph);
-              }
-
-              if (isCrewProgress(parsed.crew_progress)) {
-                setCrewProgress(parsed.crew_progress);
-              }
-
-              const parsedSource =
-                typeof parsed.source === "string" ? parsed.source : undefined;
-              if (parsedSource) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, source: parsedSource } : m
-                  )
-                );
-                if (parsedSource === "llm") {
-                  setCrewProgress(null);
-                }
-              }
-            } catch {
-              // Fallback for legacy non-JSON streaming payloads.
+            if (event.crewGraph) {
+              setCrewGraph(event.crewGraph);
             }
 
-            if (!token) continue;
+            if (event.crewProgress) {
+              setCrewProgress(event.crewProgress);
+            }
+
+            if (event.source) {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, source: event.source } : m
+                )
+              );
+              if (event.source === "llm") {
+                setCrewProgress(null);
+              }
+            }
+
+            if (!event.token) {
+              continue;
+            }
+
             receivedToken = true;
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + token } : m
+                m.id === assistantId ? { ...m, content: m.content + event.token } : m
               )
             );
           }
@@ -257,6 +180,17 @@ export function useChat() {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const updateMessageTranslation = useCallback(
+    (id: string, translatedContent: string, showTranslated: boolean) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, translatedContent, showTranslated } : m
+        )
+      );
+    },
+    []
+  );
+
   return {
     messages,
     crewGraph,
@@ -268,5 +202,6 @@ export function useChat() {
     appendAssistantMessage,
     resetSession,
     clearError,
+    updateMessageTranslation,
   };
 }
