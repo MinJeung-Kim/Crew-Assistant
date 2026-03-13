@@ -165,6 +165,15 @@ orchestration/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── tsconfig.json
+├── doc/                           # 개발 문서
+│   ├── architecture.md            # 시스템 아키텍처 + 레이어 구조 + 데이터 흐름
+│   ├── api-reference.md           # 전체 API 엔드포인트 상세 (Request/Response)
+│   ├── crewai-orchestration.md    # CrewAI 멀티 에이전트 동적 구성 + 태스크 DAG
+│   ├── rag-knowledge-base.md      # RAG 인제스트 파이프라인 + 하이브리드 검색
+│   ├── onboarding-workflow.md     # 온보딩 자동화 (Gmail + Slack + Drive)
+│   ├── google-oauth.md            # Google OAuth Web/Installed 플로우 + Drive 연동
+│   ├── frontend-guide.md          # Frontend 컴포넌트 + 상태 관리 + SSE 파싱
+│   └── development-guide.md       # 환경 설정 + 테스트 + 코드 컨벤션
 └── README.md                      # ← 이 파일
 ```
 
